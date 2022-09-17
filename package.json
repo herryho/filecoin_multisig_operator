@@ -1,8 +1,16 @@
 {
   "devDependencies": {
+    "@types/node": "^14.11.2",
     "gts": "^3.1.1",
-    "typescript": "~4.7.0",
-    "@types/node": "^14.11.2"
+    "typescript": "~4.7.0"
+  },
+  "dependencies": {
+    "@blits-labs/filecoin-signing-tools": "^0.2.4",
+    "@blitslabs/filecoin-js-signer": "^1.0.6",
+    "@polkadot/util": "^10.1.7",
+    "bignumber.js": "^8.1.1",
+    "dotenv": "^6.1.0",
+    "winston": "^3.8.2"
   },
   "scripts": {
     "build": "npx tsc",
@@ -11,8 +19,9 @@
     "clean": "gts clean",
     "compile": "tsc",
     "fix": "gts fix",
-    "prepare": "npm run compile",
-    "pretest": "npm run compile",
-    "posttest": "npm run lint"
+    "create-multi-account": "create ",
+    "init-multi-transfer": "init ",
+    "approve-multi-transfer": "approve ",
+    "cancel-multi-transfer": "cancel "
   }
 }
