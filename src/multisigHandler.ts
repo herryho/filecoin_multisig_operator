@@ -18,12 +18,14 @@ export default class FilecoinMultisigHandler {
   async createMultisigAccount() {
     const from = this.envParamsProvider.getFilecoinSignerAccount();
     const addresses = this.envParamsProvider.getFilecoinOtherSignerAccounts();
-    const amount = 0;
-    const requiredNumberOfApprovals =
-      this.envParamsProvider.getFilecoinMultisigThreshold();
+    const amount = new BigNumber(0);
+    const requiredNumberOfApprovals = Number(
+      this.envParamsProvider.getFilecoinMultisigThreshold()
+    );
     const nonce = await this.filecoinClient.tx.clientProvider.mpool.getNonce(
       from
     );
+
     const unlockDuration = 0;
     const startEpoch = 0;
     // 用undefined就会使用默认值
