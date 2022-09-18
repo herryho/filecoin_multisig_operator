@@ -56,9 +56,9 @@ export default class EnvParamsProvider {
 
   getValue(key: string, throwOnMissing = true): string | undefined {
     const value = this.env[key];
-    if (!value && throwOnMissing) {
-      throw new Error(`config error - missing env.${key}`);
-    }
+    // if (!value && throwOnMissing) {
+    //   throw new Error(`config error - missing env.${key}`);
+    // }
 
     return value;
   }

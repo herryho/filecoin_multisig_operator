@@ -32,7 +32,7 @@ export default class FilecoinMultisigHandler {
     const network = MAINNET;
     const waitMsg = true;
 
-    const tx_message = await this.filecoinClient.createMultisig(
+    const tx_message = await this.filecoinClient.msig.createMultisig(
       from,
       addresses,
       amount,
@@ -56,7 +56,7 @@ export default class FilecoinMultisigHandler {
     const network = MAINNET;
     const waitMsg = true; // false => return CID || true => wait for tx to confirm and return tx details
 
-    const tx_message = await this.filecoinClient.proposeMultisig(
+    const tx_message = await this.filecoinClient.msig.proposeMultisig(
       multisigAddress,
       from,
       to,
@@ -85,7 +85,7 @@ export default class FilecoinMultisigHandler {
       from
     );
 
-    const tx_message = await this.filecoinClient.approveMultisig(
+    const tx_message = await this.filecoinClient.msig.approveMultisig(
       multisigAddress,
       messageId,
       multi_transfer_creator,
@@ -114,7 +114,7 @@ export default class FilecoinMultisigHandler {
     const privateKey = this.envParamsProvider.getFilecoinPrivateKey();
     const waitMsg = true; // false => return CID || true => wait for tx to confirm and return tx details
 
-    const tx_message = await this.filecoinClient.cancelMultisig(
+    const tx_message = await this.filecoinClient.msig.cancelMultisig(
       multisigAddress,
       messageId,
       multi_transfer_creator,

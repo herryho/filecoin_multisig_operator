@@ -19,9 +19,9 @@
     "clean": "gts clean",
     "compile": "tsc",
     "fix": "gts fix",
-    "create-multi-account": "create ",
-    "init-multi-transfer": "init ",
-    "approve-multi-transfer": "approve ",
-    "cancel-multi-transfer": "cancel "
+    "create-multi-account": "node ./build/src/index.js create ",
+    "init-multi-transfer": "node ./build/src/index.js init ",
+    "approve-multi-transfer": "node ./build/src/index.js approve ",
+    "cancel-multi-transfer": "node ./build/src/index.js cancel "
   }
 }

@@ -7,33 +7,33 @@ import BigNumber from 'bignumber.js';
 const winston = require('winston');
 require('dotenv').config();
 
-function main() {
+async function main() {
+  const now_time = new Date().toISOString();
+  // 设置logger
+  const logger = winston.createLogger({
+    level: 'info',
+    format: winston.format.json(),
+    defaultMeta: {service: 'user-service'},
+    transports: [
+      //
+      // - Write all logs with importance level of `error` or less to `error.log`
+      // - Write all logs with importance level of `info` or less to `combined.log`
+      //
+      new winston.transports.File({filename: 'error.log', level: 'error'}),
+      new winston.transports.File({filename: 'combined.log'}),
+    ],
+  });
   try {
-    // 设置logger
-    const logger = winston.createLogger({
-      level: 'info',
-      format: winston.format.json(),
-      defaultMeta: {service: 'user-service'},
-      transports: [
-        //
-        // - Write all logs with importance level of `error` or less to `error.log`
-        // - Write all logs with importance level of `info` or less to `combined.log`
-        //
-        new winston.transports.File({filename: 'error.log', level: 'error'}),
-        new winston.transports.File({filename: 'combined.log'}),
-      ],
-    });
-
     const clientProvider = new ClientProvider();
+    // 给里边的client成员初始化赋值
+    clientProvider.getFilClient();
     const envParamsProvider = new EnvParamsProvider(process.env);
     const multisigHandler = new FilecoinMultisigHandler(
       clientProvider,
       envParamsProvider
     );
-
     // 获取终端输入参数
     const args = process.argv.slice(2);
-    const now_time = new Date().toISOString();
 
     let to_account;
     let amount;
@@ -42,14 +42,17 @@ function main() {
     switch (args[0]) {
       // 如果是创建一个多签账户
       case CREATE:
-        tx_info = multisigHandler.createMultisigAccount();
+        tx_info = await multisigHandler.createMultisigAccount();
         logger.info(`${now_time}: \n create message_cid: ${tx_info} \n\n`);
         break;
       // 如果是创建一个多签转账消息
       case INIT:
         to_account = args[1];
         amount = new BigNumber(args[2]);
-        tx_info = multisigHandler.initNewMultisigTransfer(to_account, amount);
+        tx_info = await multisigHandler.initNewMultisigTransfer(
+          to_account,
+          amount
+        );
         logger.info(`${now_time}: \n init message_cid: ${tx_info} \n\n`);
         break;
       // 如果是同意一个多签转账消息
@@ -57,7 +60,7 @@ function main() {
         to_account = args[1];
         amount = new BigNumber(args[2]);
         multi_transfer_creator = args[3];
-        tx_info = multisigHandler.approveMultisigTransfer(
+        tx_info = await multisigHandler.approveMultisigTransfer(
           to_account,
           amount,
           multi_transfer_creator
@@ -69,7 +72,7 @@ function main() {
         to_account = args[1];
         amount = new BigNumber(args[2]);
         multi_transfer_creator = args[3];
-        tx_info = multisigHandler.cancelMultisigTransfer(
+        tx_info = await multisigHandler.cancelMultisigTransfer(
           to_account,
           amount,
           multi_transfer_creator
@@ -79,8 +82,8 @@ function main() {
       default:
         logger.info(`${now_time}: \n No command matches! \n\n`);
     }
-  } catch (_e) {
-    return null;
+  } catch (e) {
+    logger.info(`${now_time}: \n Catch error ${e}! \n\n`);
   }
 }
 
