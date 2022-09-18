@@ -49,7 +49,7 @@ export default class EnvParamsProvider {
   }
 
   getFilecoinOtherSignerAccounts() {
-    const signers_string = this.getValue('FILECOIN_SIGNER_ACCOUNT', true);
+    const signers_string = this.getValue('MULTISIG_SIGNERS', true);
     const signers_list = signers_string?.split('|');
     return signers_list;
   }
