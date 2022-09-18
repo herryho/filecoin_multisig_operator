@@ -101,9 +101,9 @@ export default class FilecoinMultisigHandler {
   }
 
   async cancelMultisigTransfer(
-    multi_transfer_creator: string,
     to: string,
-    amount: BigNumber
+    amount: BigNumber,
+    multi_transfer_creator: string
   ) {
     const multisigAddress = this.envParamsProvider.getFilecoinMultisigAddress();
     const messageId = Math.floor(Date.now() / 1000);

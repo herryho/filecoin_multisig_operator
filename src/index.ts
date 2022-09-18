@@ -9,6 +9,7 @@ require('dotenv').config();
 
 function main() {
   try {
+    // 设置logger
     const logger = winston.createLogger({
       level: 'info',
       format: winston.format.json(),
@@ -30,6 +31,7 @@ function main() {
       envParamsProvider
     );
 
+    // 获取终端输入参数
     const args = process.argv.slice(2);
     const now_time = new Date().toISOString();
 
@@ -62,21 +64,24 @@ function main() {
         );
         logger.info(`${now_time}: \n approve message_cid: ${tx_info} \n\n`);
         break;
+      // 如果是取消一个多签转账消息
       case CANCEL:
         to_account = args[1];
         amount = new BigNumber(args[2]);
         multi_transfer_creator = args[3];
         tx_info = multisigHandler.cancelMultisigTransfer(
-          multi_transfer_creator,
           to_account,
-          amount
+          amount,
+          multi_transfer_creator
         );
         logger.info(`${now_time}: \n cancel message_cid: ${tx_info} \n\n`);
         break;
       default:
-        console.log();
+        logger.info(`${now_time}: \n No command matches! \n\n`);
     }
   } catch (_e) {
     return null;
   }
 }
+
+main();
