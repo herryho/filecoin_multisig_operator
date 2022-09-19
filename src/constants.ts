@@ -1,4 +1,3 @@
-export const MAINNET = 'mainnet';
 export const CREATE = 'create';
 export const INIT = 'init';
 export const APPROVE = 'approve';
