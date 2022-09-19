@@ -1,0 +1,9 @@
+{"level":"info","message":"2022-09-18T07:01:40.255Z: \n Catch error Error: config error - missing env.FILECOIN_ENDPOINT_TOKEN! \n\n","service":"user-service"}
+{"level":"info","message":"2022-09-18T07:04:07.530Z: \n Catch error TypeError: filecoin_signing_tools_1.FilecoinClient is not a constructor! \n\n","service":"user-service"}
+{"level":"info","message":"2022-09-18T07:10:10.108Z: \n Catch error TypeError: filecoin_signing_tools_1.FilecoinClient is not a constructor! \n\n","service":"user-service"}
+{"level":"info","message":"2022-09-18T07:14:12.077Z: \n create message_cid: [object Promise] \n\n","service":"user-service"}
+{"level":"info","message":"2022-09-18T07:25:07.863Z: \n create message_cid: [object Promise] \n\n","service":"user-service"}
+{"level":"info","message":"2022-09-18T07:42:08.278Z: \n create message_cid: [object Promise] \n\n","service":"user-service"}
+{"level":"info","message":"2022-09-18T07:44:52.323Z: \n Catch error Error: unmarshaling params for 'Filecoin.GasEstimateMessageGas' (param: **types.Message): json: cannot unmarshal number into Go struct field Message.Value of type string! \n\n","service":"user-service"}
+{"level":"info","message":"2022-09-18T07:47:04.613Z: \n Catch error Error: unmarshaling params for 'Filecoin.GasEstimateMessageGas' (param: **types.Message): json: cannot unmarshal number into Go struct field Message.Value of type string! \n\n","service":"user-service"}
+{"level":"info","message":"2022-09-18T07:57:54.610Z: \n Catch error Error: unmarshaling params for 'Filecoin.GasEstimateMessageGas' (param: **types.Message): json: cannot unmarshal number into Go struct field Message.Value of type string! \n\n","service":"user-service"}

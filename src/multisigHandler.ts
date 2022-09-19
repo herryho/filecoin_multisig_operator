@@ -1,133 +1,156 @@
+import * as fs from 'fs';
 import EnvParamsProvider from './envParamsProvider';
 import ClientProvider from './clientProvider';
-import BigNumber from 'bignumber.js';
-import {MAINNET} from './constants';
+import {
+  LotusWalletProvider,
+  MnemonicWalletProvider,
+  LotusClient,
+} from 'filecoin.js';
+import {Logger} from 'winston';
 
 export default class FilecoinMultisigHandler {
   constructor(
     clientProvider: ClientProvider,
-    envParamsProvider: EnvParamsProvider
+    envParamsProvider: EnvParamsProvider,
+    logger: Logger
   ) {
-    this.filecoinClient = clientProvider.client;
+    this.lotusWalletProvider = clientProvider.lotusWalletProvider;
+    this.mnemonicWalletProvider = clientProvider.mnemonicWalletProvider;
+    this.lotusClient = clientProvider.lotusClient;
     this.envParamsProvider = envParamsProvider;
+    this.logger = logger;
   }
 
-  filecoinClient;
-  envParamsProvider;
+  lotusWalletProvider: LotusWalletProvider;
+  envParamsProvider: EnvParamsProvider;
+  mnemonicWalletProvider: MnemonicWalletProvider;
+  lotusClient: LotusClient;
+  logger: Logger;
 
   async createMultisigAccount() {
-    const from = this.envParamsProvider.getFilecoinSignerAccount();
-    const addresses = this.envParamsProvider.getFilecoinOtherSignerAccounts();
-    const amount = new BigNumber(0);
+    const mnemonicAddress =
+      await this.mnemonicWalletProvider.getDefaultAddress();
     const requiredNumberOfApprovals = Number(
       this.envParamsProvider.getFilecoinMultisigThreshold()
     );
-    const nonce = await this.filecoinClient.tx.clientProvider.mpool.getNonce(
-      from
-    );
+    const addresses = this.envParamsProvider.getFilecoinOtherSignerAccounts();
 
-    const unlockDuration = 0;
-    const startEpoch = 0;
-    // 用undefined就会使用默认值
-    const codeCID = undefined;
-    const privateKey = this.envParamsProvider.getFilecoinPrivateKey();
-    const network = MAINNET;
-    const waitMsg = true;
+    if (addresses) {
+      const multisigCid = await this.lotusWalletProvider.msigCreate(
+        requiredNumberOfApprovals,
+        addresses,
+        0,
+        0,
+        '0',
+        mnemonicAddress
+      );
 
-    const tx_message = await this.filecoinClient.msig.createMultisig(
-      from,
-      addresses,
-      amount,
-      requiredNumberOfApprovals,
-      nonce,
-      unlockDuration,
-      startEpoch,
-      codeCID,
-      privateKey,
-      network,
-      waitMsg
-    );
+      const receipt = await this.lotusClient.state.waitMsg(multisigCid, 0);
+      const multisigAddress = receipt.ReturnDec.RobustAddress;
+      this.logger.info(`multisigAddress generated: ${multisigAddress}`);
 
-    return tx_message;
+      // Put this generated multisig address into .env file.
+      fs.appendFileSync(
+        '.env',
+        `FILECOIN_MULTISIG_ADDRESS='${multisigAddress}'`
+      );
+
+      const txnID = receipt.ReturnDec.TxnID;
+      this.logger.info(
+        `【Succeed】create multisig address message_cid: ${txnID}`
+      );
+      return txnID;
+    } else {
+      throw Error('Signer addresses cannot be empty!');
+    }
   }
 
-  async initNewMultisigTransfer(to: string, amount: BigNumber) {
+  async initNewMultisigTransfer(to: string, amount: string) {
     const multisigAddress = this.envParamsProvider.getFilecoinMultisigAddress();
-    const from = this.envParamsProvider.getFilecoinSignerAccount();
-    const privateKey = this.envParamsProvider.getFilecoinPrivateKey();
-    const network = MAINNET;
-    const waitMsg = true; // false => return CID || true => wait for tx to confirm and return tx details
+    const mnemonicAddress =
+      await this.mnemonicWalletProvider.getDefaultAddress();
 
-    const tx_message = await this.filecoinClient.msig.proposeMultisig(
-      multisigAddress,
-      from,
-      to,
-      amount,
-      privateKey,
-      network,
-      waitMsg
-    );
-
-    // return msgCid['/'];
-    return tx_message;
+    if (multisigAddress) {
+      const initTransferCid =
+        await this.lotusWalletProvider.msigProposeTransfer(
+          multisigAddress,
+          mnemonicAddress,
+          amount,
+          to
+        );
+      const receiptTransferStart = await this.lotusClient.state.waitMsg(
+        initTransferCid,
+        0
+      );
+      const txnID = receiptTransferStart.ReturnDec.TxnID;
+      this.logger.info(`【Succeed】init transfer message_cid: ${txnID}`);
+      return txnID;
+    } else {
+      throw Error('Multisig address cannot be empty!');
+    }
   }
 
   async approveMultisigTransfer(
     to: string,
-    amount: BigNumber,
-    multi_transfer_creator: string
+    amount: string,
+    multi_transfer_creator: string,
+    transfer_tx_ID: number
   ) {
-    // messageId应该是一个自定义的消息编码，用于对应结果，类型是number
     const multisigAddress = this.envParamsProvider.getFilecoinMultisigAddress();
-    const from = this.envParamsProvider.getFilecoinSignerAccount();
-    const messageId = Math.floor(Date.now() / 1000);
-    const privateKey = this.envParamsProvider.getFilecoinPrivateKey();
-    const waitMsg = true; // false => return CID || true => wait for tx to confirm and return tx details
-    const nonce = await this.filecoinClient.tx.clientProvider.mpool.getNonce(
-      from
-    );
+    const mnemonicAddress =
+      await this.mnemonicWalletProvider.getDefaultAddress();
 
-    const tx_message = await this.filecoinClient.msig.approveMultisig(
-      multisigAddress,
-      messageId,
-      multi_transfer_creator,
-      from,
-      to,
-      amount,
-      nonce,
-      privateKey,
-      waitMsg
-    );
-
-    return tx_message;
+    if (multisigAddress) {
+      const approveTransferCid =
+        await this.lotusWalletProvider.msigApproveTransferTxHash(
+          multisigAddress,
+          transfer_tx_ID,
+          multi_transfer_creator,
+          to,
+          amount,
+          mnemonicAddress
+        );
+      const receiptTransferApprove = await this.lotusClient.state.waitMsg(
+        approveTransferCid,
+        0
+      );
+      const txnID = receiptTransferApprove.ReturnDec.TxnID;
+      this.logger.info(`【Succeed】approve transfer message_cid: ${txnID}`);
+      return txnID;
+    } else {
+      throw Error('Multisig address cannot be empty!');
+    }
   }
 
+  // 取消人必须是消息发起人
   async cancelMultisigTransfer(
     to: string,
-    amount: BigNumber,
-    multi_transfer_creator: string
+    amount: string,
+    transfer_tx_ID: number
   ) {
     const multisigAddress = this.envParamsProvider.getFilecoinMultisigAddress();
-    const messageId = Math.floor(Date.now() / 1000);
-    const from = this.envParamsProvider.getFilecoinSignerAccount();
-    const nonce = await this.filecoinClient.tx.clientProvider.mpool.getNonce(
-      from
-    );
-    const privateKey = this.envParamsProvider.getFilecoinPrivateKey();
-    const waitMsg = true; // false => return CID || true => wait for tx to confirm and return tx details
+    const mnemonicAddress =
+      await this.mnemonicWalletProvider.getDefaultAddress();
 
-    const tx_message = await this.filecoinClient.msig.cancelMultisig(
-      multisigAddress,
-      messageId,
-      multi_transfer_creator,
-      from,
-      to,
-      amount,
-      nonce,
-      privateKey,
-      waitMsg
-    );
+    if (multisigAddress) {
+      const cancelTransferCid =
+        await this.lotusWalletProvider.msigCancelTransfer(
+          multisigAddress,
+          mnemonicAddress,
+          transfer_tx_ID,
+          to,
+          amount
+        );
+      const receiptTransferCancel = await this.lotusClient.state.waitMsg(
+        cancelTransferCid,
+        0
+      );
 
-    return tx_message;
+      const txnID = receiptTransferCancel.ReturnDec.TxnID;
+      this.logger.info(`【Succeed】 cancel transfer message_cid: ${txnID}`);
+      return txnID;
+    } else {
+      throw Error('Multisig address cannot be empty!');
+    }
   }
 }

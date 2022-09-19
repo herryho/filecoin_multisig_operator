@@ -3,7 +3,8 @@
   "compilerOptions": {
     "rootDir": ".",
     "outDir": "build",
-    "allowJs": true
+    "allowJs": true,
+    "strictPropertyInitialization": false
   },
   "include": [
     "src/**/*.ts",

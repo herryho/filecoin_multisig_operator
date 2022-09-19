@@ -3,63 +3,58 @@ require('dotenv').config();
 export default class EnvParamsProvider {
   constructor(private env: {[k: string]: string | undefined}) {}
 
-  ensureValues(keys: string[]) {
-    keys.forEach(k => this.getValue(k, true));
-    return this;
-  }
-
   // Filecoin params
   // Infura
   getFilecoinInfuraUrl() {
-    return this.getValue('FILECOIN_INFURA_URL', true);
+    return this.getValue('FILECOIN_INFURA_URL');
   }
 
   getFilecoinInfuraProjectId() {
-    return this.getValue('FILECOIN_PROJECT_ID', true);
+    return this.getValue('FILECOIN_PROJECT_ID');
   }
 
   getFilecoinInfuraProjectSecret() {
-    return this.getValue('FILECOIN_PROJECT_SECRET', true);
+    return this.getValue('FILECOIN_PROJECT_SECRET');
   }
 
   // Lotus/Infura
   getFilecoinEndpoint() {
-    return this.getValue('FILECOIN_ENDPOINT_URL', true);
+    return this.getValue('FILECOIN_ENDPOINT_URL');
   }
 
   getFilecoinEndpointToken() {
-    return this.getValue('FILECOIN_ENDPOINT_TOKEN', true);
+    return this.getValue('FILECOIN_ENDPOINT_TOKEN');
   }
 
   // Filecoin private key
   getFilecoinPrivateKey() {
-    return this.getValue('FILECOIN_PRIVATE_KEY', true);
+    return this.getValue('FILECOIN_PRIVATE_KEY');
+  }
+
+  // Filecoin mnemonic
+  getFilecoinMnemonic() {
+    return this.getValue('FILECOIN_MNEMONIC');
   }
 
   getFilecoinSignerAccount() {
-    return this.getValue('FILECOIN_SIGNER_ACCOUNT', true);
+    return this.getValue('FILECOIN_SIGNER_ACCOUNT');
   }
 
   getFilecoinMultisigAddress() {
-    return this.getValue('FILECOIN_MULTISIG_ADDRESS', true);
+    return this.getValue('FILECOIN_MULTISIG_ADDRESS');
   }
 
   getFilecoinMultisigThreshold() {
-    return this.getValue('FILECOIN_MULTISIG_THRESHOLD', true);
+    return this.getValue('FILECOIN_MULTISIG_THRESHOLD');
   }
 
   getFilecoinOtherSignerAccounts() {
-    const signers_string = this.getValue('MULTISIG_SIGNERS', true);
+    const signers_string = this.getValue('MULTISIG_SIGNERS');
     const signers_list = signers_string?.split('|');
     return signers_list;
   }
 
-  getValue(key: string, throwOnMissing = true): string | undefined {
-    const value = this.env[key];
-    // if (!value && throwOnMissing) {
-    //   throw new Error(`config error - missing env.${key}`);
-    // }
-
-    return value;
+  getValue(key: string): string | undefined {
+    return this.env[key];
   }
 }
