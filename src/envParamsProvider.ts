@@ -48,13 +48,13 @@ export default class EnvParamsProvider {
     return this.getValue('FILECOIN_MULTISIG_THRESHOLD');
   }
 
-  getFilecoinOtherSignerAccounts() {
+  getFilecoinAllSignerAccounts() {
     const signers_string = this.getValue('MULTISIG_SIGNERS');
     const signers_list = signers_string?.split('|');
     return signers_list;
   }
 
-  getValue(key: string): string | undefined {
-    return this.env[key];
+  getValue(key: string): string {
+    return this.env[key] || '';
   }
 }

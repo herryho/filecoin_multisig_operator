@@ -1,5 +1,4 @@
-import ClientProvider from './clientProvider';
-import {APPROVE, CANCEL, CREATE, INIT} from './constants';
+import {APPROVE, CANCEL, CREATE, INIT} from './types';
 import EnvParamsProvider from './envParamsProvider';
 import FilecoinMultisigHandler from './multisigHandler';
 import BigNumber from 'bignumber.js';
@@ -24,14 +23,11 @@ async function main() {
       new winston.transports.File({filename: 'combined.log'}),
     ],
   });
-  const clientProvider = new ClientProvider();
-  // 给里边的client成员初始化赋值
-  await clientProvider.getFilClient();
+
   const envParamsProvider = new EnvParamsProvider(process.env);
   const multisigHandler = new FilecoinMultisigHandler(
-    clientProvider,
-    envParamsProvider,
-    logger
+    logger,
+    envParamsProvider
   );
   // 获取终端输入参数
   const args = process.argv.slice(2);

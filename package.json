@@ -7,9 +7,9 @@
   },
   "dependencies": {
     "@polkadot/util": "^10.1.7",
+    "@zondax/filecoin-signing-tools": "^1.1.2",
     "bignumber.js": "^8.1.1",
     "dotenv": "^6.1.0",
-    "filecoin.js": "^0.0.5-alpha",
     "winston": "^3.8.2"
   },
   "scripts": {
