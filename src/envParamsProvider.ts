@@ -22,10 +22,6 @@ export default class EnvParamsProvider {
     return this.getValue('FILECOIN_ENDPOINT_URL');
   }
 
-  getFilecoinEndpointToken() {
-    return this.getValue('FILECOIN_ENDPOINT_TOKEN');
-  }
-
   // Filecoin private key
   getFilecoinPrivateKey() {
     return this.getValue('FILECOIN_PRIVATE_KEY');
@@ -46,6 +42,10 @@ export default class EnvParamsProvider {
 
   getFilecoinMultisigThreshold() {
     return this.getValue('FILECOIN_MULTISIG_THRESHOLD');
+  }
+
+  getFilecoinMainNodeAddress() {
+    return this.getValue('FILECOIN_MAIN_NODE_ADDRESS');
   }
 
   getFilecoinAllSignerAccounts() {

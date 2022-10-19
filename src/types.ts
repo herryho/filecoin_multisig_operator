@@ -11,7 +11,7 @@ export const MULTISIG_ACTOR_CODE_CID =
   'bafk2bzacebhldfjuy4o5v7amrhp5p2gzv2qo5275jut4adnbyp56fxkwy5fag';
 
 /// interfaces
-export interface messgae {
+export interface message {
   to: string;
   from: string;
   nonce: number;
@@ -19,12 +19,12 @@ export interface messgae {
   gaslimit: number;
   gasfeecap: string;
   gaspremium: string;
-  method: number;
+  method: MsigMethod;
   params: string;
 }
 
 /* MSIG Method*/
-export declare enum MsigMethod {
+export enum MsigMethod {
   WITHDRAW = 0,
   CONSTRUCTOR = 1,
   PROPOSE = 2,

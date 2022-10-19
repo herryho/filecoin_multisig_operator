@@ -1,7 +1,6 @@
 import {APPROVE, CANCEL, CREATE, INIT} from './types';
 import EnvParamsProvider from './envParamsProvider';
 import FilecoinMultisigHandler from './multisigHandler';
-import BigNumber from 'bignumber.js';
 
 const winston = require('winston');
 
@@ -34,8 +33,7 @@ async function main() {
 
   let to_account;
   let amount;
-  let multi_transfer_creator;
-  let transfer_tx_ID;
+  let tx_cid;
   switch (args[0]) {
     // 如果是创建一个多签账户
     case CREATE:
@@ -51,25 +49,15 @@ async function main() {
     case APPROVE:
       to_account = args[1];
       amount = args[2];
-      multi_transfer_creator = args[3];
-      transfer_tx_ID = Number(args[4]);
-      await multisigHandler.approveMultisigTransfer(
-        to_account,
-        amount,
-        multi_transfer_creator,
-        transfer_tx_ID
-      );
+      tx_cid = args[3];
+      await multisigHandler.approveMultisigTransfer(to_account, amount, tx_cid);
       break;
     // 如果是取消一个多签转账消息
     case CANCEL:
       to_account = args[1];
       amount = args[2];
-      transfer_tx_ID = Number(args[3]);
-      await multisigHandler.cancelMultisigTransfer(
-        to_account,
-        amount,
-        transfer_tx_ID
-      );
+      tx_cid = Number(args[3]);
+      await multisigHandler.cancelMultisigTransfer(to_account, amount, tx_cid);
       break;
     default:
       logger.info(`${now_time}: \n No command matches! \n\n`);

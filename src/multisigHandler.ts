@@ -1,7 +1,6 @@
-import * as fs from 'fs';
 import EnvParamsProvider from './envParamsProvider';
 import {Logger} from 'winston';
-import {messgae, MULTISIG_ACTOR_CODE_CID} from './types';
+import {message, MsigMethod, MULTISIG_ACTOR_CODE_CID} from './types';
 const filecoin_signer = require('@zondax/filecoin-signing-tools');
 const axios = require('axios');
 
@@ -11,9 +10,9 @@ export default class FilecoinMultisigHandler {
     this.envParamsProvider = envParamsProvider;
     this.requester = axios.create({
       baseURL: this.envParamsProvider.getFilecoinEndpoint(),
-      headers: {
-        Authorization: `Bearer ${this.envParamsProvider.getFilecoinEndpointToken()}`,
-      },
+      method: 'POST',
+      json: true,
+      headers: {'Content-Type': 'application/json'},
     });
   }
   logger: Logger;
@@ -21,12 +20,7 @@ export default class FilecoinMultisigHandler {
   requester;
 
   async createMultisigAccount() {
-    let cid = '0';
     try {
-      const recovered_key = filecoin_signer.keyRecover(
-        Buffer.from(this.envParamsProvider.getFilecoinPrivateKey(), 'hex')
-      );
-      const privateKey = Buffer.from(recovered_key.private_base64, 'base64');
       const selfAccount = this.envParamsProvider.getFilecoinSignerAccount();
 
       // 先构造交易参数
@@ -41,13 +35,9 @@ export default class FilecoinMultisigHandler {
 
       let params = {
         CodeCid: MULTISIG_ACTOR_CODE_CID,
-        ConstructorParams: Buffer.from(
-          filecoin_signer.serializeParams(constructor_params),
-          'hex'
-        ).toString('base64'),
+        ConstructorParams: this.serializeAndFormatParams(constructor_params),
       };
 
-      let serialized_params = filecoin_signer.serializeParams(params);
       // 获取nounce
       const nonce = await this.getNonce(selfAccount);
 
@@ -61,8 +51,8 @@ export default class FilecoinMultisigHandler {
         gaslimit: 0,
         gasfeecap: '0',
         gaspremium: '0',
-        method: 2,
-        params: Buffer.from(serialized_params, 'hex').toString('base64'),
+        method: MsigMethod.PROPOSE,
+        params: this.serializeAndFormatParams(params),
       };
 
       // 获取预估gas费
@@ -70,38 +60,121 @@ export default class FilecoinMultisigHandler {
         create_multisig_transaction
       );
 
-      const signed_create_multisig = filecoin_signer.transactionSignLotus(
-        create_multisig_transaction_with_gas,
-        privateKey
+      const cid = await this.signAndSendTransaction(
+        create_multisig_transaction_with_gas
       );
-
-      this.logger.info(
-        `signed_create_multisig: ${JSON.stringify(signed_create_multisig)}`
-      );
-
-      const result = this.sendMessage(signed_create_multisig);
-
-      this.logger.info(
-        `create multisig account response data: ${JSON.stringify(result)}`
-      );
-
-      cid = filecoin_signer.getCid(JSON.parse(signed_create_multisig));
-      this.logger.info(`cid: ${cid}`);
+      return cid;
     } catch (e) {
       this.logger.info(`error: ${e}`);
     }
-
-    return cid;
   }
 
-  async initNewMultisigTransfer(to: string, amount: string) {}
+  async initNewMultisigTransfer(to: string, amount: string) {
+    try {
+      let propose_params = {
+        To: to,
+        Value: amount,
+        Method: 0,
+        Params: '',
+      };
+
+      const selfAccount = this.envParamsProvider.getFilecoinSignerAccount();
+      // 获取nounce
+      const nonce = await this.getNonce(selfAccount);
+
+      let propose_multisig_transaction = {
+        to: this.envParamsProvider.getFilecoinMultisigAddress(),
+        from: selfAccount,
+        nonce: nonce,
+        value: '0',
+        gaslimit: 0,
+        gasfeecap: '0',
+        gaspremium: '0',
+        method: MsigMethod.PROPOSE,
+        params: this.serializeAndFormatParams(propose_params),
+      };
+
+      // 获取预估gas费
+      const propose_multisig_transaction_with_gas = await this.getGasEstimation(
+        propose_multisig_transaction
+      );
+
+      const cid = await this.signAndSendTransaction(
+        propose_multisig_transaction_with_gas
+      );
+
+      return cid;
+    } catch (e) {
+      this.logger.info(`error: ${e}`);
+    }
+  }
 
   async approveMultisigTransfer(
     to: string,
     amount: string,
-    multi_transfer_creator: string,
-    transfer_tx_ID: number
-  ) {}
+    // propose主账号发起这笔交易的cid
+    txCid: string
+  ) {
+    try {
+      const selfAccount = this.envParamsProvider.getFilecoinSignerAccount();
+
+      let proposal_params = {
+        // Requester: this.envParamsProvider.getFilecoinMainNodeAddress(),
+        Requester: this.envParamsProvider.getFilecoinMainNodeAddress(),
+        To: to,
+        Value: amount,
+        Method: 0,
+        Params: '',
+      };
+
+      const proposalHash = filecoin_signer.computeProposalHash(proposal_params);
+      const txReceipt = await this.getTransactionReceipt(txCid);
+      console.log(`txReceipt: ${JSON.stringify(txReceipt)}`);
+
+      const txnid = txReceipt.result.ReturnDec.TxnID;
+
+      let approve_params = {
+        ID: txnid,
+        ProposalHash: proposalHash.toString('base64'),
+      };
+
+      console.log(approve_params);
+
+      // 获取nounce
+      const nonce = await this.getNonce(selfAccount);
+
+      let approve_multisig_transaction = {
+        to: this.envParamsProvider.getFilecoinMultisigAddress(),
+        from: selfAccount,
+        nonce: nonce,
+        value: '0',
+        gaslimit: 0,
+        gasfeecap: '0',
+        gaspremium: '0',
+        method: MsigMethod.APPROVE,
+        params: this.serializeAndFormatParams(approve_params),
+      };
+
+      // 获取预估gas费
+      const approve_multisig_transaction_with_gas = await this.getGasEstimation(
+        approve_multisig_transaction
+      );
+
+      console.log(
+        `approve_multisig_transaction_with_gas: ${JSON.stringify(
+          approve_multisig_transaction_with_gas
+        )}`
+      );
+
+      const cid = await this.signAndSendTransaction(
+        approve_multisig_transaction_with_gas
+      );
+
+      return cid;
+    } catch (e) {
+      this.logger.info(`error: ${e}`);
+    }
+  }
 
   // 取消人必须是消息发起人
   async cancelMultisigTransfer(
@@ -125,7 +198,7 @@ export default class FilecoinMultisigHandler {
   }
 
   // 获取gas fee estimation
-  async getGasEstimation(message: messgae) {
+  async getGasEstimation(message: message) {
     let response = await this.requester.post('', {
       jsonrpc: '2.0',
       method: 'Filecoin.GasEstimateMessageGas',
@@ -145,5 +218,87 @@ export default class FilecoinMultisigHandler {
       params: [JSON.parse(signed_message)],
     });
     return response.data.result;
+  }
+
+  // 让参数serialize序列化变成一个hex string，然后转成buffer raw data，然后再转成base64格式的string,用于传到lotus服务器
+  serializeAndFormatParams(params: any) {
+    const serializedParams = filecoin_signer.serializeParams(params);
+    const formatedRawData = this.hexToBase64(serializedParams);
+
+    return formatedRawData;
+  }
+
+  // base64格式转成raw data格式,用于将私钥暂存于buffer里
+  base64ToBufferRawData(param: any) {
+    return Buffer.from(param, 'base64');
+  }
+
+  // hex格式转成raw data格式,用于将私钥暂存于buffer里
+  hexToBufferRawData(param: any) {
+    return Buffer.from(param, 'hex');
+  }
+
+  // hex格式转成base64
+  hexToBase64(param: any) {
+    return Buffer.from(param, 'hex').toString('base64');
+  }
+
+  // 获取私钥
+  getPrivateKey() {
+    const recovered_key = filecoin_signer.keyRecover(
+      this.hexToBufferRawData(this.envParamsProvider.getFilecoinPrivateKey())
+    );
+
+    const privateKey = this.base64ToBufferRawData(recovered_key.private_base64);
+
+    return privateKey;
+  }
+
+  // 签名，并发送至lotus服务器上
+  async signAndSendTransaction(transactionWithGas: any) {
+    try {
+      const signed_transaction_multisig = filecoin_signer.transactionSignLotus(
+        transactionWithGas,
+        this.getPrivateKey()
+      );
+
+      console.log(
+        `signed_transaction_multisig: ${JSON.stringify(
+          signed_transaction_multisig
+        )}`
+      );
+      const result = await this.sendMessage(signed_transaction_multisig);
+      console.log(`result: ${JSON.stringify(result)}`);
+
+      const cid = result['/'];
+      const receipt = await this.getTransactionReceipt(result);
+
+      this.logger.info(`Transaction receipt: ${JSON.stringify(receipt)}`);
+      this.logger.info(`cid: ${cid}`);
+
+      return cid;
+    } catch (e) {
+      this.logger.info(`error: ${e}`);
+    }
+  }
+
+  // 获取某个交易cid的具体信息
+  async getTransactionReceipt(transactionCid: any) {
+    const formatted_cid = {
+      '/': 'bafy2bzaceba7xs7i4dumog6pafvpwjsxowziqjq4wg3kkutgmjjbnmz3mofcw',
+    };
+
+    console.log(`formatted_cid: ${JSON.stringify(formatted_cid)}`);
+
+    const response = await this.requester.post('', {
+      jsonrpc: '2.0',
+      method: 'Filecoin.StateGetReceipt',
+      id: 1,
+      params: [formatted_cid, 0, null, false],
+    });
+
+    console.log(`response: ${JSON.stringify(response)}`);
+
+    return response.data;
   }
 }
