@@ -52,13 +52,6 @@ async function main() {
       tx_cid = args[3];
       await multisigHandler.approveMultisigTransfer(to_account, amount, tx_cid);
       break;
-    // 如果是取消一个多签转账消息
-    case CANCEL:
-      to_account = args[1];
-      amount = args[2];
-      tx_cid = Number(args[3]);
-      await multisigHandler.cancelMultisigTransfer(to_account, amount, tx_cid);
-      break;
     default:
       logger.info(`${now_time}: \n No command matches! \n\n`);
   }

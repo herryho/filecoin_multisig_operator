@@ -128,10 +128,7 @@ export default class FilecoinMultisigHandler {
       };
 
       const proposalHash = filecoin_signer.computeProposalHash(proposal_params);
-      const txReceipt = await this.getTransactionReceipt(txCid);
-      console.log(`txReceipt: ${JSON.stringify(txReceipt)}`);
-
-      const txnid = txReceipt.result.ReturnDec.TxnID;
+      const txnid = await this.getMultisigTxId(txCid);
 
       let approve_params = {
         ID: txnid,
@@ -175,13 +172,6 @@ export default class FilecoinMultisigHandler {
       this.logger.info(`error: ${e}`);
     }
   }
-
-  // 取消人必须是消息发起人
-  async cancelMultisigTransfer(
-    to: string,
-    amount: string,
-    transfer_tx_ID: number
-  ) {}
 
   // 获取某个账户的nonce
   async getNonce(address: string) {
@@ -300,5 +290,44 @@ export default class FilecoinMultisigHandler {
     console.log(`response: ${JSON.stringify(response)}`);
 
     return response.data;
+  }
+
+  // Get all transactions in the block by block cid
+  async getBlockMessagesByBlockCid(blockCid: string) {
+    const cid = {'/': blockCid};
+
+    const response = await this.requester.post('', {
+      jsonrpc: '2.0',
+      method: 'Filecoin.ChainGetBlockMessages',
+      id: 1,
+      params: [cid],
+    });
+    return response.data.result;
+  }
+
+  // Get all block tip set by block height
+  async getBlockTipSetByHeight(blockHeight: number) {
+    const response = await this.requester.post('', {
+      jsonrpc: '2.0',
+      method: 'Filecoin.ChainGetTipSetByHeight',
+      id: 1,
+      params: [blockHeight, []],
+    });
+    return response.data.result;
+  }
+
+  // Get message details by message cid
+  async getMessageInfoByCid(messageCid: string) {
+    const url = `https://filfox.info/api/v1/message/"${messageCid}`;
+    const messageInfo = await this.requester.get(url);
+
+    return messageInfo.data;
+  }
+
+  // Get multisig message txId/txnId by message cid
+  async getMultisigTxId(multisigMessageCid: string) {
+    const messageInfo = await this.getMessageInfoByCid(multisigMessageCid);
+
+    return messageInfo['TxId'];
   }
 }
