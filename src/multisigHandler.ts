@@ -318,7 +318,7 @@ export default class FilecoinMultisigHandler {
 
   // Get message details by message cid
   async getMessageInfoByCid(messageCid: string) {
-    const url = `https://filfox.info/api/v1/message/"${messageCid}`;
+    const url = `https://filfox.info/api/v1/message/${messageCid}`;
     const messageInfo = await this.requester.get(url);
 
     return messageInfo.data;
@@ -328,6 +328,6 @@ export default class FilecoinMultisigHandler {
   async getMultisigTxId(multisigMessageCid: string) {
     const messageInfo = await this.getMessageInfoByCid(multisigMessageCid);
 
-    return messageInfo['TxId'];
+    return messageInfo['decodedReturnValue']['TxId'];
   }
 }
