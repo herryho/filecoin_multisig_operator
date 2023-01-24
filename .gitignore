@@ -2,3 +2,4 @@
 build
 .env
 **/*.log
+.env.mainnet

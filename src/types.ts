@@ -10,6 +10,9 @@ export const CANCEL = 'cancel';
 export const MULTISIG_ACTOR_CODE_CID =
   'bafk2bzacebhldfjuy4o5v7amrhp5p2gzv2qo5275jut4adnbyp56fxkwy5fag';
 
+export const CALIBRATION_MULTISIG_ACTOR_CODE_CID =
+  'bafk2bzacec6gmi7ucukr3bk67akaxwngohw3lsg3obvdazhmfhdzflkszk3tg';
+
 /// interfaces
 export interface message {
   to: string;

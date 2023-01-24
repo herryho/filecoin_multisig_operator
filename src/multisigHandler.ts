@@ -1,19 +1,22 @@
 import EnvParamsProvider from './envParamsProvider';
 import {Logger} from 'winston';
-import {message, MsigMethod, MULTISIG_ACTOR_CODE_CID} from './types';
+import {
+  message,
+  MsigMethod,
+  MULTISIG_ACTOR_CODE_CID,
+  CALIBRATION_MULTISIG_ACTOR_CODE_CID,
+} from './types';
 const filecoin_signer = require('@zondax/filecoin-signing-tools');
-const axios = require('axios');
 
 export default class FilecoinMultisigHandler {
-  constructor(logger: Logger, envParamsProvider: EnvParamsProvider) {
+  constructor(
+    logger: Logger,
+    envParamsProvider: EnvParamsProvider,
+    requester: any
+  ) {
     this.logger = logger;
     this.envParamsProvider = envParamsProvider;
-    this.requester = axios.create({
-      baseURL: this.envParamsProvider.getFilecoinEndpoint(),
-      method: 'POST',
-      json: true,
-      headers: {'Content-Type': 'application/json'},
-    });
+    this.requester = requester;
   }
   logger: Logger;
   envParamsProvider: EnvParamsProvider;
@@ -34,7 +37,7 @@ export default class FilecoinMultisigHandler {
       };
 
       let params = {
-        CodeCid: MULTISIG_ACTOR_CODE_CID,
+        CodeCid: CALIBRATION_MULTISIG_ACTOR_CODE_CID,
         ConstructorParams: this.serializeAndFormatParams(constructor_params),
       };
 

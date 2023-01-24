@@ -22,6 +22,10 @@ export default class EnvParamsProvider {
     return this.getValue('FILECOIN_ENDPOINT_URL');
   }
 
+  getFilecoinAuthorizationToken() {
+    return this.getValue('FILECOIN_AUTHORIZATION_TOKEN');
+  }
+
   // Filecoin private key
   getFilecoinPrivateKey() {
     return this.getValue('FILECOIN_PRIVATE_KEY');

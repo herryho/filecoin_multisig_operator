@@ -1,6 +1,7 @@
 import {APPROVE, CANCEL, CREATE, INIT} from './types';
 import EnvParamsProvider from './envParamsProvider';
 import FilecoinMultisigHandler from './multisigHandler';
+import axios from 'axios';
 
 const winston = require('winston');
 
@@ -24,10 +25,14 @@ async function main() {
   });
 
   const envParamsProvider = new EnvParamsProvider(process.env);
+  const requester = getRequester(envParamsProvider);
+
   const multisigHandler = new FilecoinMultisigHandler(
     logger,
-    envParamsProvider
+    envParamsProvider,
+    requester
   );
+
   // 获取终端输入参数
   const args = process.argv.slice(2);
 
@@ -55,6 +60,28 @@ async function main() {
     default:
       logger.info(`${now_time}: \n No command matches! \n\n`);
   }
+}
+
+function getRequester(envParamsProvider: EnvParamsProvider) {
+  const token = envParamsProvider.getFilecoinAuthorizationToken();
+  let headers: any = {
+    'Content-Type': 'application/json',
+  };
+
+  if (token) {
+    headers = {
+      ...headers,
+      Authorization: `Bearer ${token}`,
+    };
+  }
+
+  const requester = axios.create({
+    baseURL: envParamsProvider.getFilecoinEndpoint(),
+    method: 'POST',
+    headers,
+  });
+
+  return requester;
 }
 
 main();
