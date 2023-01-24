@@ -1,4 +1,4 @@
-import {APPROVE, CANCEL, CREATE, INIT} from './types';
+import {APPROVE, CANCEL, CREATE, INIT, TRANSFER} from './types';
 import EnvParamsProvider from './envParamsProvider';
 import FilecoinMultisigHandler from './multisigHandler';
 import axios from 'axios';
@@ -57,12 +57,18 @@ async function main() {
       tx_cid = args[3];
       await multisigHandler.approveMultisigTransfer(to_account, amount, tx_cid);
       break;
+    // 如果是一个普通账户的转账
+    case TRANSFER:
+      to_account = args[1];
+      amount = args[2];
+      await multisigHandler.simpleTransfer(to_account, amount);
+      break;
     default:
       logger.info(`${now_time}: \n No command matches! \n\n`);
   }
 }
 
-function getRequester(envParamsProvider: EnvParamsProvider) {
+export function getRequester(envParamsProvider: EnvParamsProvider) {
   const token = envParamsProvider.getFilecoinAuthorizationToken();
   let headers: any = {
     'Content-Type': 'application/json',

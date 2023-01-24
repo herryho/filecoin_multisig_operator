@@ -21,6 +21,7 @@
     "create-multi-account": "node ./build/src/index.js create ",
     "init-multi-transfer": "node ./build/src/index.js init ",
     "approve-multi-transfer": "node ./build/src/index.js approve ",
-    "cancel-multi-transfer": "node ./build/src/index.js cancel "
+    "cancel-multi-transfer": "node ./build/src/index.js cancel ",
+    "simple-transfer": "node ./build/src/index.js transfer "
   }
 }

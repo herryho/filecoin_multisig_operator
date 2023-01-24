@@ -278,14 +278,14 @@ export default class FilecoinMultisigHandler {
   // 获取某个交易cid的具体信息
   async getTransactionReceipt(transactionCid: any) {
     const formatted_cid = {
-      '/': 'bafy2bzaceba7xs7i4dumog6pafvpwjsxowziqjq4wg3kkutgmjjbnmz3mofcw',
+      '/': transactionCid,
     };
 
     console.log(`formatted_cid: ${JSON.stringify(formatted_cid)}`);
 
     const response = await this.requester.post('', {
       jsonrpc: '2.0',
-      method: 'Filecoin.StateGetReceipt',
+      method: 'Filecoin.StateSearchMsg',
       id: 1,
       params: [formatted_cid, 0, null, false],
     });
@@ -332,5 +332,40 @@ export default class FilecoinMultisigHandler {
     const messageInfo = await this.getMessageInfoByCid(multisigMessageCid);
 
     return messageInfo['decodedReturnValue']['TxId'];
+  }
+
+  // transfer some amount of money from a non-multisig account(set in the .env file) to any account
+  async simpleTransfer(to: string, amount: string) {
+    try {
+      const selfAccount = this.envParamsProvider.getFilecoinSignerAccount();
+
+      // 获取nounce
+      const nonce = await this.getNonce(selfAccount);
+
+      const transfer_transaction = {
+        to,
+        from: selfAccount,
+        nonce: nonce,
+        value: amount,
+        gaslimit: 0,
+        gasfeecap: '0',
+        gaspremium: '0',
+        method: 0,
+        params: '',
+      };
+
+      // 获取预估gas费
+      const transfer_transaction_with_gas = await this.getGasEstimation(
+        transfer_transaction
+      );
+
+      const cid = await this.signAndSendTransaction(
+        transfer_transaction_with_gas
+      );
+
+      return cid;
+    } catch (e) {
+      this.logger.info(`error: ${e}`);
+    }
   }
 }

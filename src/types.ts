@@ -5,6 +5,7 @@ export const CREATE = 'create';
 export const INIT = 'init';
 export const APPROVE = 'approve';
 export const CANCEL = 'cancel';
+export const TRANSFER = 'transfer';
 
 // program params
 export const MULTISIG_ACTOR_CODE_CID =
