@@ -255,19 +255,11 @@ export default class FilecoinMultisigHandler {
         this.getPrivateKey()
       );
 
-      console.log(
-        `signed_transaction_multisig: ${JSON.stringify(
-          signed_transaction_multisig
-        )}`
-      );
       const result = await this.sendMessage(signed_transaction_multisig);
-      console.log(`result: ${JSON.stringify(result)}`);
 
       const cid = result['/'];
-      const receipt = await this.getTransactionReceipt(result);
-
-      this.logger.info(`Transaction receipt: ${JSON.stringify(receipt)}`);
-      this.logger.info(`cid: ${cid}`);
+      const receipt = await this.waitTransactionReceipt(result);
+      const height = receipt['Height'];
 
       return cid;
     } catch (e) {
@@ -275,22 +267,45 @@ export default class FilecoinMultisigHandler {
     }
   }
 
-  // 获取某个交易cid的具体信息
+  async waitTransactionReceipt(transactionCid: any) {
+    const formatted_cid = {
+      '/': transactionCid,
+    };
+
+    const response = await this.requester.post('', {
+      jsonrpc: '2.0',
+      method: 'Filecoin.StateWaitMsg',
+      id: 1,
+      // 【cid, confidence】
+      params: [formatted_cid, null],
+    });
+    return response.data.result;
+  }
+
+  /** 获取某个交易cid的具体信息
+   * response.data.result示例
+   * {
+   * "Message":{"/":"bafy2bzacecy6am3guec4xpsb4mamurrah6amqa56zm2fx6p7jvupk4cwcvwoe"},
+   * "Receipt":{"ExitCode":0,"Return":null,"GasUsed":489268},
+   * "ReturnDec":null,
+   * "TipSet":[{"/":"bafy2bzacechqn7bzzbfa5mvonk5bbgz75fnndcail5vct6gfrssaoqmbml2da"},{"/":"bafy2bzacecckdjfkwhrd36pdvcrczzbrlf3jcm5t2jfhs4fedspdxqhzoiedi"}],
+   * "Height":241463
+   * }
+   */
   async getTransactionReceipt(transactionCid: any) {
     const formatted_cid = {
       '/': transactionCid,
     };
 
-    console.log(`formatted_cid: ${JSON.stringify(formatted_cid)}`);
-
     const response = await this.requester.post('', {
       jsonrpc: '2.0',
       method: 'Filecoin.StateSearchMsg',
       id: 1,
-      params: [formatted_cid, 0, null, false],
+      // 【from(tipSet), cid, limit(epochs), replace_or_not】
+      params: [null, formatted_cid, 5000, true],
     });
 
-    console.log(`response: ${JSON.stringify(response)}`);
+    console.log(`response.data: ${JSON.stringify(response.data)}`);
 
     return response.data;
   }
@@ -364,6 +379,104 @@ export default class FilecoinMultisigHandler {
       );
 
       return cid;
+    } catch (e) {
+      this.logger.info(`error: ${e}`);
+    }
+  }
+
+  /** 获取某个from或to地址的所有消息cid
+   * response.data.result example:
+   * [
+   * {"/":"bafy2bzacecy6am3guec4xpsb4mamurrah6amqa56zm2fx6p7jvupk4cwcvwoe"},
+   * {"/":"bafy2bzaceawjirlh4cn4gtpvcic37wi3eqnwg45wdpbog5ndjmg2jrxolcr6g"}
+   * ]
+   */
+  async getStateListMessages(
+    to: any = null,
+    from: any = null,
+    toHeight: any = null
+  ) {
+    try {
+      let message: any = {};
+      if (to) {
+        message = {
+          To: to,
+        };
+      }
+
+      if (from) {
+        message['From'] = from;
+      }
+
+      if (!Object.keys(message).length) {
+        throw Error('Either to or from address should be provided!');
+      }
+
+      const response = await this.requester.post('', {
+        jsonrpc: '2.0',
+        method: 'Filecoin.StateListMessages',
+        id: 1,
+        // 【message with from/to address, tipSet, toHeight】
+        params: [message, null, toHeight],
+      });
+
+      return response.data;
+    } catch (e) {
+      this.logger.info(`error: ${e}`);
+    }
+  }
+
+  /** Get message info by message cid
+   * response.data.result example:
+   * {
+   * "Version":0,
+   * "To":"t2d3ncmmmtxkvqhy7sltnvo4rgvczegl4wkpzlmna",
+   * "From":"t1rd2qsvcbj6wqg2zetwv5an7m3xzjm7jagmghkai",
+   * "Nonce":1,
+   * "Value":"100000000000000000000",
+   * "GasLimit":605085,
+   * "GasFeeCap":"101737",
+   * "GasPremium":"100683",
+   * "Method":0,
+   * "Params":null,
+   * "CID":{"/":"bafy2bzacecnhg3uyi7verqio5wfwbrwguvidjcqfxf4vfx2fjyrfbvbvwjyzo"}},
+   * "id":1
+   * }
+   */
+  async getMessageInfo(messageCid: string) {
+    try {
+      const cid = {'/': messageCid};
+
+      const response = await this.requester.post('', {
+        jsonrpc: '2.0',
+        method: 'Filecoin.ChainGetMessage',
+        id: 1,
+        params: [cid],
+      });
+
+      console.log(
+        `response.data.result: ${JSON.stringify(response.data.result)}`
+      );
+
+      return response.data.result;
+    } catch (e) {
+      this.logger.info(`error: ${e}`);
+    }
+  }
+
+  // ChainGetBlock
+  async getBlockByCid(messageCid: string) {
+    try {
+      const cid = {'/': messageCid};
+
+      const response = await this.requester.post('', {
+        jsonrpc: '2.0',
+        method: 'Filecoin.ChainGetBlock',
+        id: 1,
+        params: [cid],
+      });
+
+      return response.data.result;
     } catch (e) {
       this.logger.info(`error: ${e}`);
     }
