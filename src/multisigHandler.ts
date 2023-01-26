@@ -60,12 +60,16 @@ export default class FilecoinMultisigHandler {
 
       // 获取预估gas费
       const create_multisig_transaction_with_gas = await this.getGasEstimation(
-        create_multisig_transaction
+        create_multisig_transaction as message
       );
 
-      const cid = await this.signAndSendTransaction(
+      const receipt: any = await this.signAndSendTransaction(
         create_multisig_transaction_with_gas
       );
+
+      const cid = receipt['Message']['/'];
+      console.log(`cid: ${cid}`);
+
       return cid;
     } catch (e) {
       this.logger.info(`error: ${e}`);
@@ -99,12 +103,15 @@ export default class FilecoinMultisigHandler {
 
       // 获取预估gas费
       const propose_multisig_transaction_with_gas = await this.getGasEstimation(
-        propose_multisig_transaction
+        propose_multisig_transaction as message
       );
 
-      const cid = await this.signAndSendTransaction(
+      const receipt: any = await this.signAndSendTransaction(
         propose_multisig_transaction_with_gas
       );
+
+      const cid = receipt['Message']['/'];
+      console.log(`cid: ${cid}`);
 
       return cid;
     } catch (e) {
@@ -131,7 +138,11 @@ export default class FilecoinMultisigHandler {
       };
 
       const proposalHash = filecoin_signer.computeProposalHash(proposal_params);
-      const txnid = await this.getMultisigTxId(txCid);
+      const receiptMessage = await this.waitTransactionReceipt(txCid);
+      const recpt = JSON.parse(JSON.stringify(receiptMessage));
+
+      const txnid = recpt['ReturnDec']['TxnID'];
+      console.log(`txnid: ${txnid}`);
 
       let approve_params = {
         ID: txnid,
@@ -157,18 +168,15 @@ export default class FilecoinMultisigHandler {
 
       // 获取预估gas费
       const approve_multisig_transaction_with_gas = await this.getGasEstimation(
-        approve_multisig_transaction
+        approve_multisig_transaction as message
       );
 
-      console.log(
-        `approve_multisig_transaction_with_gas: ${JSON.stringify(
-          approve_multisig_transaction_with_gas
-        )}`
-      );
-
-      const cid = await this.signAndSendTransaction(
+      const receipt: any = await this.signAndSendTransaction(
         approve_multisig_transaction_with_gas
       );
+
+      const cid = receipt['Message']['/'];
+      console.log(`cid: ${cid}`);
 
       return cid;
     } catch (e) {
@@ -178,39 +186,51 @@ export default class FilecoinMultisigHandler {
 
   // 获取某个账户的nonce
   async getNonce(address: string) {
-    const response = await this.requester.post('', {
-      jsonrpc: '2.0',
-      method: 'Filecoin.MpoolGetNonce',
-      id: 1,
-      params: [address],
+    return new Promise(resolve => {
+      this.requester
+        .post('', {
+          jsonrpc: '2.0',
+          method: 'Filecoin.MpoolGetNonce',
+          id: 1,
+          params: [address],
+        })
+        .then((response: any) => {
+          resolve(response.data.result);
+        });
     });
-
-    let nonce = response.data.result;
-
-    return nonce;
   }
 
   // 获取gas fee estimation
   async getGasEstimation(message: message) {
-    let response = await this.requester.post('', {
-      jsonrpc: '2.0',
-      method: 'Filecoin.GasEstimateMessageGas',
-      id: 1,
-      params: [message, {MaxFee: '0'}, null],
+    return new Promise(resolve => {
+      this.requester
+        .post('', {
+          jsonrpc: '2.0',
+          method: 'Filecoin.GasEstimateMessageGas',
+          id: 1,
+          params: [message, {MaxFee: '0'}, null],
+        })
+        .then((response: any) => {
+          console.log(`gas result: ${JSON.stringify(response.data)}`);
+          resolve(response.data.result);
+        });
     });
-
-    return response.data.result;
   }
 
   // 获取gas fee estimation
   async sendMessage(signed_message: any) {
-    const response = await this.requester.post('', {
-      jsonrpc: '2.0',
-      method: 'Filecoin.MpoolPush',
-      id: 1,
-      params: [JSON.parse(signed_message)],
+    return new Promise(resolve => {
+      this.requester
+        .post('', {
+          jsonrpc: '2.0',
+          method: 'Filecoin.MpoolPush',
+          id: 1,
+          params: [JSON.parse(signed_message)],
+        })
+        .then((response: any) => {
+          resolve(response.data.result);
+        });
     });
-    return response.data.result;
   }
 
   // 让参数serialize序列化变成一个hex string，然后转成buffer raw data，然后再转成base64格式的string,用于传到lotus服务器
@@ -249,37 +269,58 @@ export default class FilecoinMultisigHandler {
 
   // 签名，并发送至lotus服务器上
   async signAndSendTransaction(transactionWithGas: any) {
-    try {
-      const signed_transaction_multisig = filecoin_signer.transactionSignLotus(
-        transactionWithGas,
-        this.getPrivateKey()
-      );
+    return new Promise(resolve => {
+      try {
+        const signed_transaction_multisig =
+          filecoin_signer.transactionSignLotus(
+            transactionWithGas,
+            this.getPrivateKey()
+          );
 
-      const result = await this.sendMessage(signed_transaction_multisig);
-
-      const cid = result['/'];
-      const receipt = await this.waitTransactionReceipt(result);
-      const height = receipt['Height'];
-
-      return cid;
-    } catch (e) {
-      this.logger.info(`error: ${e}`);
-    }
+        this.sendMessage(signed_transaction_multisig).then(result => {
+          let messageCid = JSON.parse(JSON.stringify(result))['/'];
+          this.waitTransactionReceipt(messageCid).then(receiptMessage => {
+            const receipt = JSON.parse(JSON.stringify(receiptMessage));
+            // if the transaction is not propose, the returnDec doesn't have txnid
+            let txnid = receipt['ReturnDec']['TxnID'];
+            console.log(`txnid: ${txnid}`);
+            resolve(receipt);
+          });
+        });
+      } catch (e) {
+        this.logger.info(`error: ${e}`);
+      }
+    });
   }
 
+  /** block and wait for receiving transaction receipt
+   * response.data.result example
+   * {
+   * "Message":{"/":"bafy2bzacecdfpyliqoeha56kiiqyi3bno44fujsnlpwae5uo57p3p5eccnvuo"},
+   * "Receipt":{"ExitCode":0,"Return":"hBL0AEA=","GasUsed":12003601},
+   * "ReturnDec":{"TxnID":18,"Applied":false,"Code":0,"Ret":null},
+   * "TipSet":[{"/":"bafy2bzaceazcmwrcrnhqb74w3sviyaymo227fuuoqzy4tcuqqinbud53sow3q"}],
+   * "Height":245935
+   * }
+   */
   async waitTransactionReceipt(transactionCid: any) {
-    const formatted_cid = {
-      '/': transactionCid,
-    };
+    return new Promise(resolve => {
+      const formatted_cid = {
+        '/': transactionCid,
+      };
 
-    const response = await this.requester.post('', {
-      jsonrpc: '2.0',
-      method: 'Filecoin.StateWaitMsg',
-      id: 1,
-      // 【cid, confidence】
-      params: [formatted_cid, null],
+      this.requester
+        .post('', {
+          jsonrpc: '2.0',
+          method: 'Filecoin.StateWaitMsg',
+          id: 1,
+          // 【cid, confidence】
+          params: [formatted_cid, null, 5000, true],
+        })
+        .then((response: any) => {
+          resolve(response.data.result);
+        });
     });
-    return response.data.result;
   }
 
   /** 获取某个交易cid的具体信息
@@ -293,45 +334,62 @@ export default class FilecoinMultisigHandler {
    * }
    */
   async getTransactionReceipt(transactionCid: any) {
-    const formatted_cid = {
-      '/': transactionCid,
-    };
+    return new Promise(resolve => {
+      const formatted_cid = {
+        '/': transactionCid,
+      };
 
-    const response = await this.requester.post('', {
-      jsonrpc: '2.0',
-      method: 'Filecoin.StateSearchMsg',
-      id: 1,
-      // 【from(tipSet), cid, limit(epochs), replace_or_not】
-      params: [null, formatted_cid, 5000, true],
+      this.requester
+        .post('', {
+          jsonrpc: '2.0',
+          method: 'Filecoin.StateSearchMsg',
+          id: 1,
+          // 【from(tipSet), cid, limit(epochs), replace_or_not】
+          params: [null, formatted_cid, 5000, true],
+        })
+        .then((response: any) => {
+          console.log(
+            `getTransactionReceipt result: ${JSON.stringify(
+              response.data.result
+            )}`
+          );
+          resolve(response.data.result);
+        });
     });
-
-    console.log(`response.data: ${JSON.stringify(response.data)}`);
-
-    return response.data;
   }
 
   // Get all transactions in the block by block cid
   async getBlockMessagesByBlockCid(blockCid: string) {
-    const cid = {'/': blockCid};
+    return new Promise(resolve => {
+      const cid = {'/': blockCid};
 
-    const response = await this.requester.post('', {
-      jsonrpc: '2.0',
-      method: 'Filecoin.ChainGetBlockMessages',
-      id: 1,
-      params: [cid],
+      this.requester
+        .post('', {
+          jsonrpc: '2.0',
+          method: 'Filecoin.ChainGetBlockMessages',
+          id: 1,
+          params: [cid],
+        })
+        .then((response: any) => {
+          resolve(response.data.result);
+        });
     });
-    return response.data.result;
   }
 
   // Get all block tip set by block height
   async getBlockTipSetByHeight(blockHeight: number) {
-    const response = await this.requester.post('', {
-      jsonrpc: '2.0',
-      method: 'Filecoin.ChainGetTipSetByHeight',
-      id: 1,
-      params: [blockHeight, []],
+    return new Promise(resolve => {
+      this.requester
+        .post('', {
+          jsonrpc: '2.0',
+          method: 'Filecoin.ChainGetTipSetByHeight',
+          id: 1,
+          params: [blockHeight, []],
+        })
+        .then((response: any) => {
+          resolve(response.data.result);
+        });
     });
-    return response.data.result;
   }
 
   // Get message details by message cid
@@ -371,12 +429,15 @@ export default class FilecoinMultisigHandler {
 
       // 获取预估gas费
       const transfer_transaction_with_gas = await this.getGasEstimation(
-        transfer_transaction
+        transfer_transaction as message
       );
 
-      const cid = await this.signAndSendTransaction(
+      const receipt: any = await this.signAndSendTransaction(
         transfer_transaction_with_gas
       );
+
+      const cid = receipt['Message']['/'];
+      console.log(`cid: ${cid}`);
 
       return cid;
     } catch (e) {

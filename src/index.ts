@@ -42,16 +42,19 @@ async function main() {
   switch (args[0]) {
     // 如果是创建一个多签账户
     case CREATE:
+      console.log(`create......`);
       await multisigHandler.createMultisigAccount();
       break;
     // 如果是创建一个多签转账消息
     case INIT:
+      console.log(`propose......`);
       to_account = args[1];
       amount = args[2];
       await multisigHandler.initNewMultisigTransfer(to_account, amount);
       break;
     // 如果是同意一个多签转账消息
     case APPROVE:
+      console.log(`approve......`);
       to_account = args[1];
       amount = args[2];
       tx_cid = args[3];
@@ -59,6 +62,7 @@ async function main() {
       break;
     // 如果是一个普通账户的转账
     case TRANSFER:
+      console.log(`Normal transfer......`);
       to_account = args[1];
       amount = args[2];
       await multisigHandler.simpleTransfer(to_account, amount);
