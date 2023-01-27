@@ -6,6 +6,7 @@ import {
   MULTISIG_ACTOR_CODE_CID,
   CALIBRATION_MULTISIG_ACTOR_CODE_CID,
 } from './types';
+import BigNumber from 'bignumber.js';
 const filecoin_signer = require('@zondax/filecoin-signing-tools');
 
 export default class FilecoinMultisigHandler {
@@ -683,6 +684,249 @@ export default class FilecoinMultisigHandler {
         .then((response: any) => {
           resolve(response.data.result);
         });
+    });
+  }
+
+  /* Miners*/
+  // 【Miner】查miner的所有的available balance,即可以提现的部分
+  async getMinerAvailableBalance(account: string) {
+    return new Promise(resolve => {
+      this.requester
+        .post('', {
+          jsonrpc: '2.0',
+          method: 'Filecoin.StateMinerAvailableBalance',
+          id: 1,
+          params: [account, null],
+        })
+        .then((response: any) => {
+          const balance = new BigNumber(response.data.result);
+          resolve(balance);
+        });
+    });
+  }
+
+  /** 【Miner】查miner的所有active的sectors
+   * [
+   * {"SectorNumber":1,"SealProof":8,"SealedCID":{"/":"bagboea4b5abcbolhsztv5teds4bldr6wg2mhspprajwd3jnajwcwiyjq77kidqi5"},
+   * "DealIDs":[13350],"Activation":108026,"Expiration":1649315,"DealWeight":"50504957952","VerifiedDealWeight":"0",
+   * "InitialPledge":"999999984306749440","ExpectedDayReward":"1704121085334740224","ExpectedStoragePledge":"28599316212248820506",
+   * "ReplacedSectorAge":0,"ReplacedDayReward":"0","SectorKeyCID":{"/":"bagboea4b5abcb2tafgfhtgvdgjeevqme6zwqq5yzq4cycmghdkqyg3iy4ne6rus4"},
+   * "SimpleQAPower":false},
+   * {"SectorNumber":2,"SealProof":8,"SealedCID":{"/":"bagboea4b5abcb6fb66hjf6t3ozyzkya6tyauugu4efzybtrc3ampt73bt5dy6z27"},
+   * "DealIDs":null,"Activation":100858,"Expiration":1649349,"DealWeight":"0","VerifiedDealWeight":"0",
+   * "InitialPledge":"999999984306749440","ExpectedDayReward":"1764056677307446672",
+   * "ExpectedStoragePledge":"26781299481274268795","ReplacedSectorAge":0,"ReplacedDayReward":"0","SectorKeyCID":null,
+   * "SimpleQAPower":false},
+   * ]
+   */
+  async getMinerSectors(account: string) {
+    return new Promise(resolve => {
+      this.requester
+        .post('', {
+          jsonrpc: '2.0',
+          method: 'Filecoin.StateMinerActiveSectors',
+          id: 1,
+          params: [account, null],
+        })
+        .then((response: any) => {
+          resolve(response.data.result);
+        });
+    });
+  }
+
+  /**
+   * 只有在precommit状态的sector才能查出来信息
+   *{
+    "Info":
+   {
+    "SealProof":8,
+    "SectorNumber":3151,
+    "SealedCID":{"/":"bagboea4b5abcatf6ae5wrfdkp5qgblgrilgxn2kl5qrhszue7lwtziucycpk6lcv"},
+    "SealRandEpoch":248210,
+    "DealIDs":null,
+    "Expiration":856940,
+    "UnsealedCid":null
+  },
+    "PreCommitDeposit":"318577297302133700672",
+    "PreCommitEpoch":249691
+  }
+   *
+   */
+  async getMinerSectorPreCommitInfo(account: string, sectorNumber: number) {
+    return new Promise(resolve => {
+      this.requester
+        .post('', {
+          jsonrpc: '2.0',
+          method: 'Filecoin.StateSectorPreCommitInfo',
+          id: 1,
+          params: [account, sectorNumber, null],
+        })
+        .then((response: any) => {
+          resolve(response.data.result);
+        });
+    });
+  }
+
+  /**
+   * {
+   * "Owner":"t03735","Worker":"t01016","NewWorker":"<empty>","ControlAddresses":["t01414","t01413","t01926"],
+   * "WorkerChangeEpoch":-1,"PeerId":"12D3KooWAq1jQUchJSFPXoPxRtmdvepjkhtBkDXJZibBVrG5QsS7",
+   * "Multiaddrs":["BAoVARAGEOE="],"WindowPoStProofType":8,"SectorSize":34359738368,
+   * "WindowPoStPartitionSectors":2349,"ConsensusFaultElapsed":-1,"Beneficiary":"t03735",
+   * "BeneficiaryTerm":{"Quota":"0","UsedQuota":"0","Expiration":0},"PendingBeneficiaryTerm":null}
+   */
+  async getStateMinerInfo(account: string) {
+    return new Promise(resolve => {
+      this.requester
+        .post('', {
+          jsonrpc: '2.0',
+          method: 'Filecoin.StateMinerInfo',
+          id: 1,
+          params: [account, null],
+        })
+        .then((response: any) => {
+          resolve(response.data.result);
+        });
+    });
+  }
+
+  async getMinerAllInitialPledge(account: string) {
+    return new Promise(resolve => {
+      this.getMinerSectors(account).then((sectors: any) => {
+        let totalInitialPledge = new BigNumber(0);
+
+        if (sectors) {
+          for (const sector of sectors) {
+            const sectorInitialPledge = new BigNumber(sector.InitialPledge);
+            totalInitialPledge = totalInitialPledge.plus(sectorInitialPledge);
+          }
+        }
+
+        resolve(totalInitialPledge);
+      });
+    });
+  }
+
+  // 获取账号最新一条ProveCommitSector的Sector Number和最新的一条PreCommitSector的Sector Number
+  async getLatestProveAndPreCommitSectorNumber(
+    minerAddress: string,
+    toHeight?: number
+  ) {
+    return new Promise(async resolve => {
+      // 如果没有提供toHeight数据，则按照当前的区块往前数5000个块，大概不到2天时间（30秒一个区块）
+      if (!toHeight) {
+        let currentBlock = await this.getFilecoinCurrentBlock();
+        toHeight = (currentBlock as number) - 5000;
+      }
+
+      this.getStateListMessages(minerAddress, null, toHeight).then(
+        (messageList: any) => {
+          this.getMessageInfoPromisesForCids(messageList).then(
+            async (messages: any) => {
+              let proveSectorNumber = 0,
+                PreCommitSectorNumber = 0;
+              for (let message of messages) {
+                if (!proveSectorNumber && message['Method'] == 7) {
+                  let sectorNum: any = await this.getDecodedSectorNumber(
+                    minerAddress,
+                    message,
+                    message['Method']
+                  );
+
+                  proveSectorNumber = sectorNum;
+                }
+
+                if (!PreCommitSectorNumber && message['Method'] == 6) {
+                  let sectorNum: any = await this.getDecodedSectorNumber(
+                    minerAddress,
+                    message,
+                    message['Method']
+                  );
+                  PreCommitSectorNumber = sectorNum;
+                }
+
+                if (proveSectorNumber && PreCommitSectorNumber) {
+                  break;
+                }
+              }
+
+              console.log('proveSectorNumber:', proveSectorNumber);
+              console.log('PreCommitSectorNumber:', PreCommitSectorNumber);
+              resolve([proveSectorNumber, PreCommitSectorNumber]);
+            }
+          );
+        }
+      );
+    });
+  }
+
+  async getMinerAllPreCommitDeposit(account: string, toHeight?: number) {
+    return new Promise(resolve => {
+      let totalPreCommitDeposit = new BigNumber(0);
+
+      // 从最新的proveCommitSector+1，算到最新的preCommitSector
+      this.getLatestProveAndPreCommitSectorNumber(account, toHeight).then(
+        ([proveSectorNumber, PreCommitSectorNumber]: any) => {
+          for (
+            let sectorNum = proveSectorNumber + 1;
+            sectorNum < PreCommitSectorNumber;
+            sectorNum++
+          ) {
+            this.getMinerSectorPreCommitInfo(account, sectorNum).then(
+              (sectorPreCommitDepositInfo: any) => {
+                totalPreCommitDeposit = totalPreCommitDeposit.plus(
+                  new BigNumber(sectorPreCommitDepositInfo['PreCommitDeposit'])
+                );
+                resolve(totalPreCommitDeposit);
+              }
+            );
+          }
+        }
+      );
+    });
+  }
+
+  // utility for decoded Sector Number
+  async getDecodedSectorNumber(
+    minerAddress: string,
+    message: any,
+    method: number
+  ) {
+    return new Promise(resolve => {
+      let sectorNumber = 0;
+      if (!sectorNumber && message['Method'] == method) {
+        this.decodeParams(minerAddress, method, message['Params']).then(
+          (decodedParam: any) => {
+            sectorNumber = decodedParam['SectorNumber'];
+            resolve(sectorNumber);
+          }
+        );
+      }
+    });
+  }
+
+  // Get the current head of the chain
+  async getChainHead() {
+    return new Promise(resolve => {
+      this.requester
+        .post('', {
+          jsonrpc: '2.0',
+          method: 'Filecoin.ChainHead',
+          id: 1,
+          params: [],
+        })
+        .then((response: any) => {
+          resolve(response.data.result);
+        });
+    });
+  }
+
+  // Get the current block height of the chain.
+  async getFilecoinCurrentBlock() {
+    return new Promise(resolve => {
+      this.getChainHead().then((chainHead: any) => {
+        resolve(parseInt(chainHead.Height));
+      });
     });
   }
 }
