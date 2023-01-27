@@ -46,7 +46,7 @@ export default class FilecoinMultisigHandler {
 
       let create_multisig_transaction = {
         // 创建新的多签账户消息固定发送的目标地址
-        to: 't01',
+        to: 'f01',
         from: selfAccount,
         nonce: nonce,
         // 多签账户初始化金额
@@ -57,6 +57,14 @@ export default class FilecoinMultisigHandler {
         method: MsigMethod.PROPOSE,
         params: this.serializeAndFormatParams(params),
       };
+
+      // 如果是测试网，地址有所不同
+      if (
+        this.envParamsProvider.getFilecoinNetwork().toLocaleLowerCase() !=
+        'mainnet'
+      ) {
+        create_multisig_transaction.to = 't01';
+      }
 
       // 获取预估gas费
       const create_multisig_transaction_with_gas = await this.getGasEstimation(

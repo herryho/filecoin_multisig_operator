@@ -60,6 +60,10 @@ export default class EnvParamsProvider {
     return this.getValue('FILECOIN_MAIN_NODE_ADDRESS');
   }
 
+  getFilecoinNetwork() {
+    return this.getValue('NETWORK');
+  }
+
   getFilecoinAllSignerAccounts() {
     const signers_string = this.getValue('MULTISIG_SIGNERS');
     const signers_list = signers_string?.split('|');
