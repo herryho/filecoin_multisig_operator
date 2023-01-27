@@ -44,6 +44,14 @@ export default class EnvParamsProvider {
     return this.getValue('FILECOIN_MULTISIG_ADDRESS');
   }
 
+  getFilecoinMultisigRobustAddress() {
+    return this.getValue('FILECOIN_MULTISIG_ROBUST_ADDRESS');
+  }
+
+  getFilecoinMultisigAddressId() {
+    return this.getValue('FILECOIN_MULTISIG_ADDRESS_ID');
+  }
+
   getFilecoinMultisigThreshold() {
     return this.getValue('FILECOIN_MULTISIG_THRESHOLD');
   }

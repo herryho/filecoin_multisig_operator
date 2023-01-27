@@ -358,55 +358,6 @@ export default class FilecoinMultisigHandler {
     });
   }
 
-  // Get all transactions in the block by block cid
-  async getBlockMessagesByBlockCid(blockCid: string) {
-    return new Promise(resolve => {
-      const cid = {'/': blockCid};
-
-      this.requester
-        .post('', {
-          jsonrpc: '2.0',
-          method: 'Filecoin.ChainGetBlockMessages',
-          id: 1,
-          params: [cid],
-        })
-        .then((response: any) => {
-          resolve(response.data.result);
-        });
-    });
-  }
-
-  // Get all block tip set by block height
-  async getBlockTipSetByHeight(blockHeight: number) {
-    return new Promise(resolve => {
-      this.requester
-        .post('', {
-          jsonrpc: '2.0',
-          method: 'Filecoin.ChainGetTipSetByHeight',
-          id: 1,
-          params: [blockHeight, []],
-        })
-        .then((response: any) => {
-          resolve(response.data.result);
-        });
-    });
-  }
-
-  // Get message details by message cid
-  async getMessageInfoByCid(messageCid: string) {
-    const url = `https://filfox.info/api/v1/message/${messageCid}`;
-    const messageInfo = await this.requester.get(url);
-
-    return messageInfo.data;
-  }
-
-  // Get multisig message txId/txnId by message cid
-  async getMultisigTxId(multisigMessageCid: string) {
-    const messageInfo = await this.getMessageInfoByCid(multisigMessageCid);
-
-    return messageInfo['decodedReturnValue']['TxId'];
-  }
-
   // transfer some amount of money from a non-multisig account(set in the .env file) to any account
   async simpleTransfer(to: string, amount: string) {
     try {
@@ -457,34 +408,38 @@ export default class FilecoinMultisigHandler {
     from: any = null,
     toHeight: any = null
   ) {
-    try {
-      let message: any = {};
-      if (to) {
-        message = {
-          To: to,
-        };
+    return new Promise(resolve => {
+      try {
+        let message: any = {};
+        if (to) {
+          message = {
+            To: to,
+          };
+        }
+
+        if (from) {
+          message['From'] = from;
+        }
+
+        if (!Object.keys(message).length) {
+          throw Error('Either to or from address should be provided!');
+        }
+
+        this.requester
+          .post('', {
+            jsonrpc: '2.0',
+            method: 'Filecoin.StateListMessages',
+            id: 1,
+            // 【message with from/to address, tipSet, toHeight】
+            params: [message, null, toHeight],
+          })
+          .then((response: any) => {
+            resolve(response.data.result);
+          });
+      } catch (e) {
+        this.logger.info(`error: ${e}`);
       }
-
-      if (from) {
-        message['From'] = from;
-      }
-
-      if (!Object.keys(message).length) {
-        throw Error('Either to or from address should be provided!');
-      }
-
-      const response = await this.requester.post('', {
-        jsonrpc: '2.0',
-        method: 'Filecoin.StateListMessages',
-        id: 1,
-        // 【message with from/to address, tipSet, toHeight】
-        params: [message, null, toHeight],
-      });
-
-      return response.data;
-    } catch (e) {
-      this.logger.info(`error: ${e}`);
-    }
+    });
   }
 
   /** Get message info by message cid
@@ -504,42 +459,222 @@ export default class FilecoinMultisigHandler {
    * "id":1
    * }
    */
-  async getMessageInfo(messageCid: string) {
-    try {
-      const cid = {'/': messageCid};
+  async getMessageInfoByCid(messageCid: string) {
+    return new Promise(resolve => {
+      try {
+        const cid = {'/': messageCid};
 
-      const response = await this.requester.post('', {
-        jsonrpc: '2.0',
-        method: 'Filecoin.ChainGetMessage',
-        id: 1,
-        params: [cid],
-      });
-
-      console.log(
-        `response.data.result: ${JSON.stringify(response.data.result)}`
-      );
-
-      return response.data.result;
-    } catch (e) {
-      this.logger.info(`error: ${e}`);
-    }
+        this.requester
+          .post('', {
+            jsonrpc: '2.0',
+            method: 'Filecoin.ChainGetMessage',
+            id: 1,
+            params: [cid],
+          })
+          .then((response: any) => {
+            resolve(response.data.result);
+          });
+      } catch (e) {
+        this.logger.info(`error: ${e}`);
+      }
+    });
   }
 
   // ChainGetBlock
   async getBlockByCid(messageCid: string) {
-    try {
-      const cid = {'/': messageCid};
+    return new Promise(resolve => {
+      try {
+        const cid = {'/': messageCid};
 
-      const response = await this.requester.post('', {
-        jsonrpc: '2.0',
-        method: 'Filecoin.ChainGetBlock',
-        id: 1,
-        params: [cid],
+        this.requester
+          .post('', {
+            jsonrpc: '2.0',
+            method: 'Filecoin.ChainGetBlock',
+            id: 1,
+            params: [cid],
+          })
+          .then((response: any) => {
+            resolve(response.data.result);
+          });
+      } catch (e) {
+        this.logger.info(`error: ${e}`);
+      }
+    });
+  }
+
+  /**
+   * [
+   * {
+   * "Version":0,
+   * "To":"t2d3ncmmmtxkvqhy7sltnvo4rgvczegl4wkpzlmna",
+   * "From":"t1rd2qsvcbj6wqg2zetwv5an7m3xzjm7jagmghkai",
+   * "Nonce":1,
+   * "Value":"100000000000000000000",
+   * "GasLimit":605085,
+   * "GasFeeCap":"101737",
+   * "GasPremium":"100683",
+   * "Method":0,
+   * "Params":null,
+   * "CID":{"/":"bafy2bzacecnhg3uyi7verqio5wfwbrwguvidjcqfxf4vfx2fjyrfbvbvwjyzo"}
+   * },
+   * {
+   * "Version":0,
+   * "To":"t01",
+   * "From":"t1rd2qsvcbj6wqg2zetwv5an7m3xzjm7jagmghkai",
+   * "Nonce":0,
+   * "Value":"0",
+   * "GasLimit":18840427,
+   * "GasFeeCap":"102103",
+   * "GasPremium":"101049",
+   * "Method":2,
+   * "Params":"gtgqWCcAAVWg5AIgvGYj9BUVHYVe+BQL2aZx7bXI23BqMGTsKceSrVLKtzNYR4SDVQHLu57Kvg8YIWHP1qWIhdju96wDR1UB8a9p+toNqwabgh4DH9n7yJgPZAJVAYj1CVRBT60DaySdq9A37N3yln0gAgAA",
+   * "CID":{"/":"bafy2bzacealefktopof6n3e3d5jra3es635o5icq3rkdvxejnqqm2sn3yaloc"}
+   * }
+   * ]
+   */
+  async getMessageInfoPromisesForCids(messages: any[]) {
+    return Promise.all(
+      messages.map(message => {
+        return this.getMessageInfoByCid(message['/']).then(
+          (messageInfo: any) => {
+            let info = JSON.parse(JSON.stringify(messageInfo));
+            info['msgCid'] = message['/'];
+            return info;
+          }
+        );
+      })
+    );
+  }
+
+  // 获取某个账号从指定区块号后的所有交易，并分类
+  async processAccountMessages(
+    to: any = null,
+    from: any = null,
+    toHeight: any = null
+  ) {
+    return new Promise(resolve => {
+      let transferInList: any[] = [],
+        proposalList: any[] = [],
+        approvalList: any[] = [];
+      this.getStateListMessages(to, from, toHeight).then((messageList: any) => {
+        this.getMessageInfoPromisesForCids(messageList).then(
+          async (messages: any) => {
+            // Multisig Account variations
+            const msigAddress =
+              this.envParamsProvider.getFilecoinMultisigAddress();
+            const msigId =
+              this.envParamsProvider.getFilecoinMultisigAddressId();
+            const msigRobust =
+              this.envParamsProvider.getFilecoinMultisigRobustAddress();
+
+            // SelfAccount
+            const selfAccount =
+              this.envParamsProvider.getFilecoinSignerAccount();
+
+            for (let message of messages) {
+              if (
+                message['To'] == msigAddress ||
+                message['To'] == msigId ||
+                message['To'] == msigRobust
+              ) {
+                let receipt: any = await this.waitTransactionReceipt(
+                  message['msgCid']
+                );
+
+                if (message['Method'] == 0) {
+                  let newTransfer: any = {};
+                  newTransfer['msgCid'] = message['msgCid'];
+                  newTransfer['Height'] = receipt['Height'];
+                  newTransfer['From'] = message['From'];
+                  newTransfer['To'] = msigAddress;
+                  newTransfer['Value'] = message['Value'];
+                  transferInList.push(newTransfer);
+                } else if (message['Method'] == 2) {
+                  // 先解码proposal的参数
+                  let decodedParam: any = await this.decodeParams(
+                    msigAddress,
+                    2,
+                    message['Params']
+                  );
+
+                  // 只有proposal是个转账的proposal，我们才留它
+                  if (decodedParam['Method'] == 0) {
+                    // proposal信息要重构
+                    let newProposal: any = {};
+                    newProposal['msgCid'] = message['msgCid'];
+                    newProposal['TxnID'] = receipt['ReturnDec']['TxnID'];
+                    newProposal['Height'] = receipt['Height'];
+                    newProposal['From'] = msigAddress;
+                    newProposal['To'] = decodedParam['To'];
+                    newProposal['Value'] = decodedParam['Value'];
+                    proposalList.push(newProposal);
+                  }
+                } else if (message['Method'] == 3) {
+                  // 只有成功执行的或者我自己账号approve过的才进入到approvallist里
+                  // 这个名单存在的目的是用于排除不需要处理的proposal
+                  if (
+                    receipt['ReturnDec']['Applied'] ||
+                    (message['From'] = selfAccount)
+                  ) {
+                    // 解码approval的参数
+                    let decodedParam: any = await this.decodeParams(
+                      msigAddress,
+                      3,
+                      message['Params']
+                    );
+
+                    let newApproval: any = {};
+                    newApproval['msgCid'] = message['msgCid'];
+                    newApproval['TxnID'] = decodedParam['ID'];
+                    newApproval['Height'] = receipt['Height'];
+
+                    if (receipt['ReturnDec']['Applied']) {
+                      newApproval['Applied'] = true;
+                    } else {
+                      newApproval['Applied'] = false;
+                    }
+
+                    approvalList.push(newApproval);
+                  }
+                }
+              }
+            }
+            resolve({
+              transferInList,
+              proposalList,
+              approvalList,
+            });
+          }
+        );
       });
+    });
+  }
 
-      return response.data.result;
-    } catch (e) {
-      this.logger.info(`error: ${e}`);
-    }
+  /** 解码params Approval example:
+   * @param toAddress: "t2d3ncmmmtxkvqhy7sltnvo4rgvczegl4wkpzlmna"
+   * @param method: 3 (Multisig Approve)
+   * @param params: "ghJYIOIBs9OqQKksmLclx43ShoHBqiPASQMtB2Fn6lpivpIa"
+   * @returns {"ID":18,"ProposalHash":"4gGz06pAqSyYtyXHjdKGgcGqI8BJAy0HYWfqWmK+kho="}
+   *
+   * 解码params Propose example:
+   * @param toAddress: "t2d3ncmmmtxkvqhy7sltnvo4rgvczegl4wkpzlmna"
+   * @param method: 2 (Multisig Propose)
+   * @param params: "hFUBy7ueyr4PGCFhz9aliIXY7vesA0dJABvBbWdOyAAAAEA="
+   * @returns {"To":"t1zo5z5sv6b4mccyop22syrboy5332ya2h5s6gxca","Value":"2000000000000000000","Method":0,"Params":null}
+   */
+  async decodeParams(toAddress: string, method: number, params: string) {
+    return new Promise(resolve => {
+      this.requester
+        .post('', {
+          jsonrpc: '2.0',
+          method: 'Filecoin.StateDecodeParams',
+          id: 1,
+          // 【toAddress, method num, encoded params, tipset】
+          params: [toAddress, method, params, null],
+        })
+        .then((response: any) => {
+          resolve(response.data.result);
+        });
+    });
   }
 }
