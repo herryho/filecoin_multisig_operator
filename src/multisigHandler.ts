@@ -929,4 +929,19 @@ export default class FilecoinMultisigHandler {
       });
     });
   }
+
+  async getMultisigAccountBalance(multisigAccount: string) {
+    return new Promise(resolve => {
+      this.requester
+        .post('', {
+          jsonrpc: '2.0',
+          method: 'Filecoin.MsigGetAvailableBalance',
+          id: 1,
+          params: [multisigAccount, null],
+        })
+        .then((response: any) => {
+          resolve(response.data.result);
+        });
+    });
+  }
 }
