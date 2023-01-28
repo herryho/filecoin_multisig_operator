@@ -489,28 +489,6 @@ export default class FilecoinMultisigHandler {
     });
   }
 
-  // ChainGetBlock
-  async getBlockByCid(messageCid: string) {
-    return new Promise(resolve => {
-      try {
-        const cid = {'/': messageCid};
-
-        this.requester
-          .post('', {
-            jsonrpc: '2.0',
-            method: 'Filecoin.ChainGetBlock',
-            id: 1,
-            params: [cid],
-          })
-          .then((response: any) => {
-            resolve(response.data.result);
-          });
-      } catch (e) {
-        this.logger.info(`error: ${e}`);
-      }
-    });
-  }
-
   /**
    * [
    * {
@@ -568,6 +546,7 @@ export default class FilecoinMultisigHandler {
       this.getStateListMessages(to, from, toHeight).then((messageList: any) => {
         this.getMessageInfoPromisesForCids(messageList).then(
           async (messages: any) => {
+            console.log(`messages: ${JSON.stringify(messages)}`);
             // Multisig Account variations
             const msigAddress =
               this.envParamsProvider.getFilecoinMultisigAddress();
@@ -590,6 +569,10 @@ export default class FilecoinMultisigHandler {
                   message['msgCid']
                 );
 
+                let blockInfo: any = await this.getBlockByCid(
+                  receipt['TipSet'][0]['/']
+                );
+
                 if (message['Method'] == 0) {
                   let newTransfer: any = {};
                   newTransfer['msgCid'] = message['msgCid'];
@@ -597,6 +580,7 @@ export default class FilecoinMultisigHandler {
                   newTransfer['From'] = message['From'];
                   newTransfer['To'] = msigAddress;
                   newTransfer['Value'] = message['Value'];
+                  newTransfer['Timestamp'] = blockInfo['Timestamp'];
                   transferInList.push(newTransfer);
                 } else if (message['Method'] == 2) {
                   // 先解码proposal的参数
@@ -616,6 +600,7 @@ export default class FilecoinMultisigHandler {
                     newProposal['From'] = msigAddress;
                     newProposal['To'] = decodedParam['To'];
                     newProposal['Value'] = decodedParam['Value'];
+                    newProposal['Timestamp'] = blockInfo['Timestamp'];
                     proposalList.push(newProposal);
                   }
                 } else if (message['Method'] == 3) {
@@ -636,6 +621,7 @@ export default class FilecoinMultisigHandler {
                     newApproval['msgCid'] = message['msgCid'];
                     newApproval['TxnID'] = decodedParam['ID'];
                     newApproval['Height'] = receipt['Height'];
+                    newApproval['Timestamp'] = blockInfo['Timestamp'];
 
                     if (receipt['ReturnDec']['Applied']) {
                       newApproval['Applied'] = true;
@@ -938,6 +924,44 @@ export default class FilecoinMultisigHandler {
           method: 'Filecoin.MsigGetAvailableBalance',
           id: 1,
           params: [multisigAccount, null],
+        })
+        .then((response: any) => {
+          resolve(response.data.result);
+        });
+    });
+  }
+
+  /** Get block info by block cid
+   *
+   * {"Miner":"t01591",
+   * "Ticket":{"VRFProof":"q/De3nZ65KrMOOWZ0wSxtoy9qzm127vSLzjiiZ0nedVGrAmjtJOb3ap5FZmhnmKpB8dzM4HIUolNgKN6MMaIuAsvbwE4fUZDJTqngM4W845Iht170UkuU8RJJUa6zUwi"},
+   * "ElectionProof":{"WinCount":1,"VRFProof":"rvy3Bs5YXbCsVkH8Ewoq0PWnt9yoMnLIfvtRekHo2b+14wSBvssfhTmFv8vMY8d3Bx0elSKPL1UmrdOxJvrq3GmiyUcSQ+cJwJd9hSTvPZyNnu0m0QdTsepS1xrN2IGf"},
+   * "BeaconEntries":[{"Round":2648205,"Data":"t4zLjhJyHlZG4gI1DYeC41A8N9taTrXnWwBXpPxrSl6FavJNL6zrGZpGR4Po3J1BFRb3EPDsL102X6wDreBLiaV2Ab7QYMMdztmYlEoWfhj3GFSgYXPW7zDpa6BI5yeJ"}],
+   * "WinPoStProof":[{"PoStProof":3,"ProofBytes":"hQXnJWJoTzM00rOOdJ+8h54NSWhc/jB0WgP20d3ED4NaOLUoNxW1I7/Ft9WfJ7pppy5Ahz+84aZ5xydWB2KglMca7YzmAohxnfMRFhyCuQ3poBoi2S8eW5PmrQ9o3h53F+viJfZ+rwkM7e0dDCMtW28iYUj1SX3A/sYMxASLVCE6lwlf6UHT9XU1ez3vwSmjrcBBkpfSumhJfjSk39w8w1X0/y7PMbbP6MnAeGHBuXl/Bc+pMAjt6NFcaVuV2Tm7"}]
+   * "Parents":[{"/":"bafy2bzacedmuqqnib4vmkbt74evdaymxuoqdmxhn4ki6rf5jjeokjwvdwcmh6"},{"/":"bafy2bzacedbumg6o5o4v5yvfyitb47ritczq6ur35gxwxqxwfa55abfigy5se"},{"/":"bafy2bzacedducvux6niolhggk4u6yxbqe4fvaxzu7mvg6tbixn7ldlv3vfcoi"}],
+   * "ParentWeight":"4731135093","Height":251694,"ParentStateRoot":{"/":"bafy2bzacedssb6jyklsijbouq66r7fg7ayhgthaddzn2pyt3xse6nq5gcvuo6"},
+   * "ParentMessageReceipts":{"/":"bafy2bzacedtjn2q7c3iin7o5oiidf2wuqooalxvyyyn4dk6qg77nzpuks2tcc"},
+   * "Messages":{"/":"bafy2bzacecjk3ei5efolrlfyrn6dbzd3m5otsjzfagv3jpccemj5n6rytpfci"},
+   * "BLSAggregate":{"Type":2,"Data":"pDLmfoNAzjcxCNCBEP0VFSOdulp0kqbm/mk8T2mWY02uvbx2Uj8+0Akuk322TFPIBHKxJrb6p4XF/fy+0WoQLeo/mcj+5kLMM5++Bdq9IWVWBARR7A+gOyxNCL9MigRQ"},
+   * "Timestamp":1674877200,
+   * "BlockSig":{"Type":2,"Data":"tLFx6DXVWNRfR2zGCjC5cuCma4puFUMG2HuIXaVz30L6snkrdiZwsIrZx/GvG/T0Cu0pISwBVclSBZNUmKbw0IHObK/9BOz99vlljoMDw/duGhTfIiinLZvX1ItWZYCM"},
+   * "ForkSignaling":0,"ParentBaseFee":"100"}
+   *
+   * @returns
+   */
+  async getBlockByCid(blockCid: string) {
+    return new Promise(resolve => {
+      const formatted_cid = {
+        '/': blockCid,
+      };
+
+      this.requester
+        .post('', {
+          jsonrpc: '2.0',
+          method: 'Filecoin.ChainGetBlock',
+          id: 1,
+          // 【from(tipSet), cid, limit(epochs), replace_or_not】
+          params: [formatted_cid],
         })
         .then((response: any) => {
           resolve(response.data.result);
