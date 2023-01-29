@@ -38,9 +38,17 @@ export default class FilecoinMultisigHandler {
       };
 
       let params = {
-        CodeCid: CALIBRATION_MULTISIG_ACTOR_CODE_CID,
+        CodeCid: MULTISIG_ACTOR_CODE_CID,
         ConstructorParams: this.serializeAndFormatParams(constructor_params),
       };
+
+      let network = this.envParamsProvider
+        .getFilecoinNetwork()
+        .toLocaleLowerCase();
+
+      if (network != 'mainnet') {
+        params.CodeCid = CALIBRATION_MULTISIG_ACTOR_CODE_CID;
+      }
 
       // 获取nounce
       const nonce = await this.getNonce(selfAccount);
@@ -60,10 +68,7 @@ export default class FilecoinMultisigHandler {
       };
 
       // 如果是测试网，地址有所不同
-      if (
-        this.envParamsProvider.getFilecoinNetwork().toLocaleLowerCase() !=
-        'mainnet'
-      ) {
+      if (network != 'mainnet') {
         create_multisig_transaction.to = 't01';
       }
 
@@ -542,7 +547,8 @@ export default class FilecoinMultisigHandler {
     return new Promise(resolve => {
       let transferInList: any[] = [],
         proposalList: any[] = [],
-        approvalList: any[] = [];
+        approvalList: any[] = [],
+        withdrawList: any[] = [];
       this.getStateListMessages(to, from, toHeight).then((messageList: any) => {
         this.getMessageInfoPromisesForCids(messageList).then(
           async (messages: any) => {
@@ -602,6 +608,25 @@ export default class FilecoinMultisigHandler {
                     newProposal['Value'] = decodedParam['Value'];
                     newProposal['Timestamp'] = blockInfo['Timestamp'];
                     proposalList.push(newProposal);
+                    // 如果是worker提现到owner账号
+                  } else if (decodedParam['Method'] == 16) {
+                    // 再次解码proposal里的miner提现参数
+                    let doubleDecodedParam: any = await this.decodeParams(
+                      decodedParam['To'],
+                      16,
+                      decodedParam['Params']
+                    );
+
+                    let newWithdraw: any = {};
+                    newWithdraw['msgcid'] = message['msgCid'];
+                    newWithdraw['txnid'] = receipt['ReturnDec']['TxnID'];
+                    newWithdraw['height'] = receipt['Height'];
+                    newWithdraw['from'] = decodedParam['To'];
+                    newWithdraw['to'] = msigAddress;
+                    // value为0意味着全额提现
+                    newWithdraw['value'] = doubleDecodedParam['Value'];
+                    newWithdraw['timestamp'] = blockInfo['Timestamp'];
+                    withdrawList.push(newWithdraw);
                   }
                 } else if (message['Method'] == 3) {
                   // 只有成功执行的或者我自己账号approve过的才进入到approvallist里
@@ -638,6 +663,7 @@ export default class FilecoinMultisigHandler {
               transferInList,
               proposalList,
               approvalList,
+              withdrawList,
             });
           }
         );
