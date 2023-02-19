@@ -30,20 +30,67 @@ async function main() {
     requester
   );
 
-  const transactionId =
-    'bafy2bzaceawjirlh4cn4gtpvcic37wi3eqnwg45wdpbog5ndjmg2jrxolcr6g';
-  let rs = await multisigHandler.getTransactionReceipt(transactionId);
+  // let rs = await multisigHandler.simpleTransfer(
+  //   't1y4r3lc2e7pgongd6dkfjydkibswhd7o5tnwbldq',
+  //   '50000000000000000000'
+  // );
+  // console.log(`rs: ${JSON.stringify(rs)}`);
+
+  // let rs = await multisigHandler.waitTransactionReceipt(
+  //   'bafy2bzacedxveiucqqlcimf7cyu3gc3tjllovautmadye454ujeie2fuxpkms'
+  // );
+  // console.log(`rs: ${JSON.stringify(rs)}`);
+
+  // // const transactionId =
+  // //   'bafy2bzaceawjirlh4cn4gtpvcic37wi3eqnwg45wdpbog5ndjmg2jrxolcr6g';
+  // // let rs = await multisigHandler.getTransactionReceipt(transactionId);
 
   // // let to = 't2d3ncmmmtxkvqhy7sltnvo4rgvczegl4wkpzlmna';
-  // let to = null;
-  // let from = 't1rd2qsvcbj6wqg2zetwv5an7m3xzjm7jagmghkai';
-  // // let toHeight = 241462;
-  // let toHeight = 230000;
-  // let rs = await multisigHandler.getStateListMessages(to, from, toHeight);
+  // // let from = null;
+  // // let from = 't1rd2qsvcbj6wqg2zetwv5an7m3xzjm7jagmghkai';
+  // // // let toHeight = 241462;
+  // let toHeight = 245900;
+  // // let rs = await multisigHandler.processAccountMessages(to, from, toHeight);
 
-  // let rs = await await multisigHandler.getBlockByCid(transactionId);
+  // // let to = 't01';
+  // let params = 'RADFu3w='; // let rs = await await multisigHandler.decodeParams(to, 2, params);
 
-  console.log(`result is: ${rs}`);
+  // // let rs = await await multisigHandler.getMessageInfoByCid(
+  // //   'bafy2bzacedqkkrahxczfd7sexsbl6q7xkycaaks3y7hsoarrs7npexmafkyy4'
+  // // );
+
+  // let address = 'f01171513';
+  // // let height = 250000;
+  // // let blockCid =
+  // //   'bafy2bzacebkm4yzcufq2ojfo2jaylpodc74cdams6qfdv72zm22rwsvrsqv2a';
+  // let rs = await multisigHandler.decodeParams(address, 23, params);
+
+  // QwDnHg==
+  // let actCid = {
+  //   '/': 'bafk2bzacebz4na3nq4gmumghegtkaofrv4nffiihd7sxntrryfneusqkuqodm',
+  // };
+  let minerId = 't03837';
+  let encodedNewOwnerAddress = `QwDnHg==`;
+  let txCid = 'bafy2bzacebyxuxx6pgvef6blkwxk4ijc3csp6dzm6yeinrbld4czoorm2m662';
+
+  // let rs = await multisigHandler.encodeParams(actCid, 23, newOwnerAddress);
+
+  // let rs = await multisigHandler.changeMinerOwner(
+  //   minerId,
+  //   encodedNewOwnerAddress
+  // );
+
+  // let rs = await multisigHandler.initNewMultisigChangeOwner(
+  //   minerId,
+  //   encodedNewOwnerAddress
+  // );
+
+  let rs = await multisigHandler.approveMultisigChangeOwner(
+    minerId,
+    txCid,
+    encodedNewOwnerAddress
+  );
+  console.log(`result is: ${JSON.stringify(rs)}`);
 }
 
 main()

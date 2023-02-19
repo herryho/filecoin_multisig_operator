@@ -994,4 +994,168 @@ export default class FilecoinMultisigHandler {
         });
     });
   }
+
+  // 单签账号操作
+  // minerId要填节点的id, 如t03837
+  // newOwnerAddress都是要f开头的actor address.需要用encodeParams来先编码
+  async changeMinerOwner(minerId: string, encodedParam: string) {
+    try {
+      const selfAccount = this.envParamsProvider.getFilecoinSignerAccount();
+      // 获取nounce
+      const nonce = await this.getNonce(selfAccount);
+      let change_miner_owner_transaction = {
+        to: minerId,
+        from: selfAccount,
+        nonce: nonce,
+        // 多签账户初始化金额
+        value: '0',
+        gaslimit: 0,
+        gasfeecap: '0',
+        gaspremium: '0',
+        // change owner address
+        method: MsigMethod.CHANGE_OWNER_ADDRESS,
+        params: this.serializeAndFormatParams(encodedParam),
+      };
+
+      // 获取预估gas费
+      const change_miner_owner_transaction_with_gas =
+        await this.getGasEstimation(change_miner_owner_transaction as message);
+      const receipt: any = await this.signAndSendTransaction(
+        change_miner_owner_transaction_with_gas
+      );
+      const cid = receipt['Message']['/'];
+      console.log(`cid: ${cid}`);
+      return cid;
+    } catch (e) {
+      this.logger.info(`error: ${e}`);
+    }
+  }
+
+  // minerId要填节点的id, 如t03837
+  async initNewMultisigChangeOwner(minerId: string, encodedParam: string) {
+    try {
+      let propose_params = {
+        To: minerId,
+        Value: '0',
+        Method: 23,
+        Params: this.serializeAndFormatParams(encodedParam),
+      };
+
+      const selfAccount = this.envParamsProvider.getFilecoinSignerAccount();
+      // 获取nounce
+      const nonce = await this.getNonce(selfAccount);
+
+      let propose_multisig_transaction = {
+        to: this.envParamsProvider.getFilecoinMultisigAddress(),
+        from: selfAccount,
+        nonce: nonce,
+        value: '0',
+        gaslimit: 0,
+        gasfeecap: '0',
+        gaspremium: '0',
+        method: MsigMethod.PROPOSE,
+        params: this.serializeAndFormatParams(propose_params),
+      };
+
+      // 获取预估gas费
+      const propose_multisig_transaction_with_gas = await this.getGasEstimation(
+        propose_multisig_transaction as message
+      );
+
+      const receipt: any = await this.signAndSendTransaction(
+        propose_multisig_transaction_with_gas
+      );
+
+      const cid = receipt['Message']['/'];
+      console.log(`cid: ${cid}`);
+
+      return cid;
+    } catch (e) {
+      this.logger.info(`error: ${e}`);
+    }
+  }
+
+  // minerId要填节点的id, 如t03837
+  async approveMultisigChangeOwner(
+    minerId: string,
+    // propose主账号发起这笔交易的cid
+    txCid: string,
+    encodedParam: string
+  ) {
+    try {
+      const selfAccount = this.envParamsProvider.getFilecoinSignerAccount();
+
+      let proposal_params = {
+        // Requester: this.envParamsProvider.getFilecoinMainNodeAddress(),
+        Requester: this.envParamsProvider.getFilecoinMainNodeAddress(),
+        To: minerId,
+        Value: '0',
+        Method: 23,
+        Params: encodedParam,
+      };
+
+      const proposalHash = filecoin_signer.computeProposalHash(proposal_params);
+      const receiptMessage = await this.waitTransactionReceipt(txCid);
+      const recpt = JSON.parse(JSON.stringify(receiptMessage));
+
+      const txnid = recpt['ReturnDec']['TxnID'];
+      console.log(`txnid: ${txnid}`);
+
+      let approve_params = {
+        ID: txnid,
+        ProposalHash: proposalHash.toString('base64'),
+      };
+
+      console.log(approve_params);
+
+      // 获取nounce
+      const nonce = await this.getNonce(selfAccount);
+
+      let approve_multisig_transaction = {
+        to: this.envParamsProvider.getFilecoinMultisigAddress(),
+        from: selfAccount,
+        nonce: nonce,
+        value: '0',
+        gaslimit: 0,
+        gasfeecap: '0',
+        gaspremium: '0',
+        method: MsigMethod.APPROVE,
+        params: this.serializeAndFormatParams(approve_params),
+      };
+
+      // 获取预估gas费
+      const approve_multisig_transaction_with_gas = await this.getGasEstimation(
+        approve_multisig_transaction as message
+      );
+
+      const receipt: any = await this.signAndSendTransaction(
+        approve_multisig_transaction_with_gas
+      );
+
+      const cid = receipt['Message']['/'];
+      console.log(`cid: ${cid}`);
+
+      return cid;
+    } catch (e) {
+      this.logger.info(`error: ${e}`);
+    }
+  }
+
+  // 获取那种需要通过一些元素进行编码的参数
+  async encodeParams(actorCid: any, method: number, params: string) {
+    return new Promise(resolve => {
+      this.requester
+        .post('', {
+          jsonrpc: '2.0',
+          method: 'Filecoin.StateEncodeParams',
+          id: 1,
+          // 【toAddress, method num, encoded params, tipset】
+          params: [actorCid, method, params],
+        })
+        .then((response: any) => {
+          console.log(`response: ${response.data.result}`);
+          resolve(response.data.result);
+        });
+    });
+  }
 }
