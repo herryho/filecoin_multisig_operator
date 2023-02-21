@@ -7,12 +7,21 @@ export const APPROVE = 'approve';
 export const CANCEL = 'cancel';
 export const TRANSFER = 'transfer';
 
-// program params
+// form mainnet
 export const MULTISIG_ACTOR_CODE_CID =
   'bafk2bzacebhldfjuy4o5v7amrhp5p2gzv2qo5275jut4adnbyp56fxkwy5fag';
 
+// for calibration
 export const CALIBRATION_MULTISIG_ACTOR_CODE_CID =
   'bafk2bzacec6gmi7ucukr3bk67akaxwngohw3lsg3obvdazhmfhdzflkszk3tg';
+
+// for calibration
+export const CALIBRATION_STORAGE_MINER_ACTOR_CODE_CID =
+  'bafk2bzacebz4na3nq4gmumghegtkaofrv4nffiihd7sxntrryfneusqkuqodm';
+
+// for mainnet
+export const STORAGE_MINER_ACTOR_CODE_CID =
+  'bafk2bzacedyux5hlrildwutvvjdcsvjtwsoc5xnqdjl73ouiukgklekeuyfl4';
 
 /// interfaces
 export interface message {
