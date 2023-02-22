@@ -7,6 +7,7 @@ import {
   CALIBRATION_MULTISIG_ACTOR_CODE_CID,
   CALIBRATION_STORAGE_MINER_ACTOR_CODE_CID,
   STORAGE_MINER_ACTOR_CODE_CID,
+  BuiltInMethod,
 } from './types';
 import BigNumber from 'bignumber.js';
 const filecoin_signer = require('@zondax/filecoin-signing-tools');
@@ -251,7 +252,9 @@ export default class FilecoinMultisigHandler {
 
   // 让参数serialize序列化变成一个hex string，然后转成buffer raw data，然后再转成base64格式的string,用于传到lotus服务器
   serializeAndFormatParams(params: any) {
+    console.log(`params: ${JSON.stringify(params)}`);
     const serializedParams = filecoin_signer.serializeParams(params);
+    console.log(`kkkserializedParams: ${serializedParams}`);
     const formatedRawData = this.hexToBase64(serializedParams);
 
     return formatedRawData;
@@ -1029,7 +1032,7 @@ export default class FilecoinMultisigHandler {
           gasfeecap: '0',
           gaspremium: '0',
           // change owner address
-          method: MsigMethod.CHANGE_OWNER_ADDRESS,
+          method: BuiltInMethod.CHANGE_OWNER_ADDRESS,
           params: this.serializeAndFormatParams(encodedParam),
         };
 
@@ -1206,6 +1209,63 @@ export default class FilecoinMultisigHandler {
           console.log(`response: ${response.data.result}`);
           resolve(response.data.result);
         });
+    });
+  }
+
+  // 单签账号发起
+  // 新的worker必须是普通的账号，不能是多签。而且必须是BLS类型账号
+  async changeMinerWorker(
+    minerId: string,
+    newWorkerId: string,
+    ctrlAddressArray: any = []
+  ) {
+    return new Promise(async resolve => {
+      try {
+        let network = this.envParamsProvider
+          .getFilecoinNetwork()
+          .toLocaleLowerCase();
+
+        // let inner_params = {
+        //   NewWorker: newWorkerId,
+        //   NewControlAddrs: ctrlAddressArray,
+        // };
+
+        // console.log(
+        //   `inner_params: ${this.serializeAndFormatParams(inner_params)}`
+        // );
+
+        const selfAccount = this.envParamsProvider.getFilecoinSignerAccount();
+        // 获取nounce
+        const nonce = await this.getNonce(selfAccount);
+        let change_miner_worker_transaction = {
+          to: minerId,
+          from: selfAccount,
+          nonce: nonce,
+          // 多签账户初始化金额
+          value: '0',
+          gaslimit: 0,
+          gasfeecap: '0',
+          gaspremium: '0',
+          // change owner address
+          method: BuiltInMethod.CHANGE_WORKER_ADDRESS,
+          // params: this.serializeAndFormatParams(inner_params),
+          params: 'gkMA6xyA',
+        };
+
+        // 获取预估gas费
+        const change_miner_worker_transaction_with_gas =
+          await this.getGasEstimation(
+            change_miner_worker_transaction as message
+          );
+        const receipt: any = await this.signAndSendTransaction(
+          change_miner_worker_transaction_with_gas
+        );
+        const cid = receipt['Message']['/'];
+        console.log(`cid: ${cid}`);
+        resolve(cid);
+      } catch (e) {
+        this.logger.info(`error: ${e}`);
+      }
     });
   }
 }

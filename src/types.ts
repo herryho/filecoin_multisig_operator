@@ -32,14 +32,13 @@ export interface message {
   gaslimit: number;
   gasfeecap: string;
   gaspremium: string;
-  method: MsigMethod;
+  method: MsigMethod | BuiltInMethod;
   params: string;
 }
 
 /* MSIG Method*/
 export enum MsigMethod {
   WITHDRAW = 0,
-  CONSTRUCTOR = 1,
   PROPOSE = 2,
   APPROVE = 3,
   CANCEL = 4,
@@ -48,5 +47,10 @@ export enum MsigMethod {
   SWAP_SIGNER = 7,
   CHANGE_NUM_APPROVALS_THRESHOLD = 8,
   LOCK_BALANCE = 9,
+}
+
+export enum BuiltInMethod {
+  CONSTRUCTOR = 1,
+  CHANGE_WORKER_ADDRESS = 3,
   CHANGE_OWNER_ADDRESS = 23,
 }

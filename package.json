@@ -8,8 +8,11 @@
   "dependencies": {
     "@blitslabs/filecoin-js-signer": "^1.0.6",
     "@zondax/filecoin-signing-tools": "^2.3.0",
+    "base32-decode": "^1.0.0",
     "bignumber.js": "^8.1.1",
     "dotenv": "^6.1.0",
+    "ipld-dag-cbor": "^1.0.1",
+    "leb128": "^0.0.5",
     "winston": "^3.8.2"
   },
   "scripts": {

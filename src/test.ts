@@ -70,8 +70,8 @@ async function main() {
   //   '/': 'bafk2bzacebz4na3nq4gmumghegtkaofrv4nffiihd7sxntrryfneusqkuqodm',
   // };
   let minerId = 't03837';
-  let encodedNewOwnerAddress = `QwDnHg==`;
-  let txCid = 'bafy2bzacebyxuxx6pgvef6blkwxk4ijc3csp6dzm6yeinrbld4czoorm2m662';
+  // let encodedNewOwnerAddress = `QwDnHg==`;
+  // let txCid = 'bafy2bzacebyxuxx6pgvef6blkwxk4ijc3csp6dzm6yeinrbld4czoorm2m662';
 
   // let rs = await multisigHandler.encodeParams(actCid, 23, newOwnerAddress);
 
@@ -85,11 +85,14 @@ async function main() {
   //   encodedNewOwnerAddress
   // );
 
-  let rs = await multisigHandler.approveMultisigChangeOwner(
-    minerId,
-    txCid,
-    encodedNewOwnerAddress
-  );
+  // let rs = await multisigHandler.approveMultisigChangeOwner(
+  //   minerId,
+  //   txCid,
+  //   encodedNewOwnerAddress
+  // );
+
+  let newWorkerId = 't03943';
+  let rs = await multisigHandler.changeMinerWorker(minerId, newWorkerId);
   console.log(`result is: ${JSON.stringify(rs)}`);
 }
 
