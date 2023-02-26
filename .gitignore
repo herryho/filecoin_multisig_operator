@@ -3,3 +3,4 @@ build
 .env
 **/*.log
 .env.mainnet
+.env.testnet

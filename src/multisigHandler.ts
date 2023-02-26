@@ -10,6 +10,8 @@ import {
   BuiltInMethod,
 } from './types';
 import BigNumber from 'bignumber.js';
+import {copyFileSync} from 'fs';
+import {sleep} from './utils';
 const filecoin_signer = require('@zondax/filecoin-signing-tools');
 
 export default class FilecoinMultisigHandler {
@@ -751,6 +753,22 @@ export default class FilecoinMultisigHandler {
     });
   }
 
+  // including sectors that are not actively proving.
+  async getMinerAllSectors(account: string) {
+    return new Promise(resolve => {
+      this.requester
+        .post('', {
+          jsonrpc: '2.0',
+          method: 'Filecoin.StateMinerSectors',
+          id: 1,
+          params: [account, null, null],
+        })
+        .then((response: any) => {
+          resolve(response.data.result);
+        });
+    });
+  }
+
   /**
    * 只有在precommit状态的sector才能查出来信息
    *{
@@ -809,7 +827,7 @@ export default class FilecoinMultisigHandler {
 
   async getMinerAllInitialPledge(account: string) {
     return new Promise(resolve => {
-      this.getMinerSectors(account).then((sectors: any) => {
+      this.getMinerAllSectors(account).then((sectors: any) => {
         let totalInitialPledge = new BigNumber(0);
 
         if (sectors) {
@@ -819,87 +837,75 @@ export default class FilecoinMultisigHandler {
           }
         }
 
+        console.log(totalInitialPledge);
+
         resolve(totalInitialPledge);
       });
     });
   }
 
-  // 获取账号最新一条ProveCommitSector的Sector Number和最新的一条PreCommitSector的Sector Number
-  async getLatestProveAndPreCommitSectorNumber(
-    minerAddress: string,
-    toHeight?: number
-  ) {
+  // precommit deposit无论在所有的sector和active的sector都找不到的，所以只能从事件里找
+  //
+  async getMinerAllPreCommitDeposit(minerAddress: string, hours: number = 5) {
     return new Promise(async resolve => {
-      // 如果没有提供toHeight数据，则按照当前的区块往前数5000个块，大概不到2天时间（30秒一个区块）
-      if (!toHeight) {
-        let currentBlock = await this.getFilecoinCurrentBlock();
-        toHeight = (currentBlock as number) - 5000;
-      }
+      let backBlocks = (hours * 60 * 60) / 30;
 
-      this.getStateListMessages(minerAddress, null, toHeight).then(
-        (messageList: any) => {
-          this.getMessageInfoPromisesForCids(messageList).then(
-            async (messages: any) => {
-              let proveSectorNumber = 0,
-                PreCommitSectorNumber = 0;
-              for (let message of messages) {
-                if (!proveSectorNumber && message['Method'] == 7) {
-                  let sectorNum: any = await this.getDecodedSectorNumber(
-                    minerAddress,
-                    message,
-                    message['Method']
-                  );
+      // 先获取5个小时内这个miner的所有的prcommit deposit的事件，把sectorNumber找出来
+      let currentBlock = await this.getFilecoinCurrentBlock();
+      // 算5个小时内的precommit deposit，30秒一个块，所以是5 * 60 * 2 = 600
+      let toHeight = (currentBlock as number) - backBlocks;
+      let rawMessageList = (await this.getStateListMessages(
+        minerAddress,
+        null,
+        toHeight
+      )) as any[];
 
-                  proveSectorNumber = sectorNum;
-                }
+      let messages = (await this.getMessageInfoPromisesForCidsByStops(
+        rawMessageList
+      )) as any[];
 
-                if (!PreCommitSectorNumber && message['Method'] == 6) {
-                  let sectorNum: any = await this.getDecodedSectorNumber(
-                    minerAddress,
-                    message,
-                    message['Method']
-                  );
-                  PreCommitSectorNumber = sectorNum;
-                }
+      let sectors: any[] = (await this.getSectorsByStops(
+        messages,
+        minerAddress
+      )) as any[];
 
-                if (proveSectorNumber && PreCommitSectorNumber) {
-                  break;
-                }
-              }
+      console.log(`sectors length: ${sectors.length}`);
 
-              console.log('proveSectorNumber:', proveSectorNumber);
-              console.log('PreCommitSectorNumber:', PreCommitSectorNumber);
-              resolve([proveSectorNumber, PreCommitSectorNumber]);
-            }
-          );
-        }
+      // 获取了precommitDeposit的sector后,查出它们的PreCommitDeposit
+      let totalPreCommitDeposit = await this.getPrecommitDepositsByStops(
+        sectors,
+        minerAddress
       );
+
+      resolve(totalPreCommitDeposit);
     });
   }
 
-  async getMinerAllPreCommitDeposit(account: string, toHeight?: number) {
-    return new Promise(resolve => {
-      let totalPreCommitDeposit = new BigNumber(0);
+  async getMessageInfoPromisesForCidsByStops(messageList: any[]) {
+    return new Promise(async resolve => {
+      let messages: any = [];
+      if (messageList.length) {
+        // 每200条消息分成一个组，以减少每次发送消息的数量，不然服务器会报错
+        let groupNum = Math.ceil(messageList.length / 200);
 
-      // 从最新的proveCommitSector+1，算到最新的preCommitSector
-      this.getLatestProveAndPreCommitSectorNumber(account, toHeight).then(
-        ([proveSectorNumber, PreCommitSectorNumber]: any) => {
-          for (
-            let sectorNum = proveSectorNumber + 1;
-            sectorNum < PreCommitSectorNumber;
-            sectorNum++
-          ) {
-            this.getMinerSectorPreCommitInfo(account, sectorNum).then(
-              (sectorPreCommitDepositInfo: any) => {
-                totalPreCommitDeposit = totalPreCommitDeposit.plus(
-                  new BigNumber(sectorPreCommitDepositInfo['PreCommitDeposit'])
-                );
-                resolve(totalPreCommitDeposit);
-              }
-            );
+        for (let i = 0; i < groupNum; i++) {
+          let endNum = (i + 1) * 200;
+          if (i == groupNum - 1) {
+            endNum = messageList.length;
           }
+          let subMessageList = messageList.slice(i * 200, endNum);
+          let msgs = await this.getMessageInfoPromisesForCids(subMessageList);
+
+          if (msgs) {
+            messages = messages.concat(msgs);
+          }
+
+          // 停顿30秒再去查询
+          await sleep(30 * 1000);
         }
-      );
+      }
+
+      resolve(messages);
     });
   }
 
@@ -919,6 +925,97 @@ export default class FilecoinMultisigHandler {
           }
         );
       }
+    });
+  }
+
+  async getSectorsByStops(messageList: any[], minerAddress: string) {
+    return new Promise(async resolve => {
+      let sectors: any = [];
+      if (messageList.length) {
+        // 每200条消息分成一个组，以减少每次发送消息的数量，不然服务器会报错
+        let groupNum = Math.ceil(messageList.length / 200);
+
+        for (let i = 0; i < groupNum; i++) {
+          let endNum = (i + 1) * 200;
+          if (i == groupNum - 1) {
+            endNum = messageList.length;
+          }
+          let subMessageList = messageList.slice(i * 200, endNum);
+
+          let subSectors = [];
+          for (let message of subMessageList) {
+            if (message['Method'] == 6) {
+              let sectorNum: any = await this.getDecodedSectorNumber(
+                minerAddress,
+                message,
+                message['Method']
+              );
+              subSectors.push(sectorNum);
+            }
+          }
+
+          if (subSectors.length) {
+            sectors = sectors.concat(subSectors);
+          }
+
+          // 停顿30秒再去查询
+          await sleep(30 * 1000);
+        }
+      }
+      resolve(sectors);
+    });
+  }
+
+  async getPrecommitDepositsByStops(sectors: any[], minerAddress: string) {
+    return new Promise(async resolve => {
+      let totalPreCommitDeposit = new BigNumber(0);
+      // 获取了precommitDeposit的sector后,查出它们的PreCommitDeposit
+      if (sectors) {
+        // 每200条消息分成一个组，以减少每次发送消息的数量，不然服务器会报错
+        let groupNum = Math.ceil(sectors.length / 200);
+
+        let subsetDeposits: any[] = [];
+        for (let i = 0; i < groupNum; i++) {
+          let endNum = (i + 1) * 200;
+          if (i == groupNum - 1) {
+            endNum = sectors.length;
+          }
+          let subSectors = sectors.slice(i * 200, endNum);
+
+          let sectorPreCommitDeposits = await Promise.all(
+            subSectors.map((sectorNum: any) => {
+              return this.getMinerSectorPreCommitInfo(
+                minerAddress,
+                sectorNum
+              ).then((sectorPreCommitDepositInfo: any) => {
+                let deposit = new BigNumber(0);
+
+                // 只有sector在precommit的状态才能查出来信息，不然就为空
+                if (sectorPreCommitDepositInfo) {
+                  deposit = new BigNumber(
+                    sectorPreCommitDepositInfo['PreCommitDeposit']
+                  );
+                }
+
+                return deposit;
+              });
+            })
+          );
+
+          subsetDeposits = subsetDeposits.concat(sectorPreCommitDeposits);
+
+          // 停顿30秒再去查询
+          await sleep(30 * 1000);
+        }
+
+        if (subsetDeposits.length) {
+          totalPreCommitDeposit = subsetDeposits.reduce((total, currentValue) =>
+            total.plus(currentValue)
+          );
+        }
+      }
+
+      resolve(totalPreCommitDeposit);
     });
   }
 
@@ -1266,6 +1363,25 @@ export default class FilecoinMultisigHandler {
       } catch (e) {
         this.logger.info(`error: ${e}`);
       }
+    });
+  }
+
+  async getNormalAccountBalance(account: string): Promise<BigNumber> {
+    return new Promise(resolve => {
+      this.requester
+        .post('', {
+          jsonrpc: '2.0',
+          method: 'Filecoin.WalletBalance',
+          id: 1,
+          params: [account],
+        })
+        .then((response: any) => {
+          const balance = new BigNumber(response.data.result);
+          resolve(balance);
+        })
+        .catch(function (error: any) {
+          console.log(error.toJSON());
+        });
     });
   }
 }
