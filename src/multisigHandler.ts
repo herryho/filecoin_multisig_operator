@@ -909,12 +909,12 @@ export default class FilecoinMultisigHandler {
     });
   }
 
-  // utility for decoded Sector Number
+  // utility for decoded Sector Number from PrecommitSector
   async getDecodedSectorNumber(
     minerAddress: string,
     message: any,
     method: number
-  ) {
+  ): Promise<number> {
     return new Promise(resolve => {
       let sectorNumber = 0;
       if (!sectorNumber && message['Method'] == method) {
@@ -922,6 +922,28 @@ export default class FilecoinMultisigHandler {
           (decodedParam: any) => {
             sectorNumber = decodedParam['SectorNumber'];
             resolve(sectorNumber);
+          }
+        );
+      }
+    });
+  }
+
+  // utility for decoded Sector Number from PrecommitSectorBatch
+  async getDecodedSectorNumbersFromBatch(
+    minerAddress: string,
+    message: any,
+    method: number
+  ): Promise<number[]> {
+    return new Promise(resolve => {
+      let sectorNumbers: number[] = [];
+      if (message['Method'] == method) {
+        this.decodeParams(minerAddress, method, message['Params']).then(
+          (decodedParams: any) => {
+            for (const decodedParam of decodedParams[`Sectors`]) {
+              let sectorNumber = decodedParam['SectorNumber'];
+              sectorNumbers.push(sectorNumber);
+            }
+            resolve(sectorNumbers);
           }
         );
       }
@@ -942,15 +964,30 @@ export default class FilecoinMultisigHandler {
           }
           let subMessageList = messageList.slice(i * 200, endNum);
 
-          let subSectors = [];
+          let subSectors: number[] = [];
           for (let message of subMessageList) {
+            // PreCommitSector事件
             if (message['Method'] == 6) {
-              let sectorNum: any = await this.getDecodedSectorNumber(
+              let sectorNum: number = await this.getDecodedSectorNumber(
                 minerAddress,
                 message,
                 message['Method']
               );
               subSectors.push(sectorNum);
+            }
+
+            // PreCommitSectorBatch事件
+            if (message['Method'] == 25) {
+              let sectorNums: number[] =
+                await this.getDecodedSectorNumbersFromBatch(
+                  minerAddress,
+                  message,
+                  message['Method']
+                );
+
+              console.log(`sectorNums: ${sectorNums}`);
+
+              subSectors = subSectors.concat(sectorNums);
             }
           }
 
