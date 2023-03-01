@@ -706,6 +706,25 @@ export default class FilecoinMultisigHandler {
     });
   }
 
+  async getNormalAccountBalance(account: string): Promise<BigNumber> {
+    return new Promise(resolve => {
+      this.requester
+        .post('', {
+          jsonrpc: '2.0',
+          method: 'Filecoin.WalletBalance',
+          id: 1,
+          params: [account],
+        })
+        .then((response: any) => {
+          const balance = new BigNumber(response.data.result);
+          resolve(balance);
+        })
+        .catch(function (error: any) {
+          console.log(error.toJSON());
+        });
+    });
+  }
+
   /* Miners*/
   // 【Miner】查miner的所有的available balance,即可以提现的部分
   async getMinerAvailableBalance(account: string) {
@@ -1403,21 +1422,17 @@ export default class FilecoinMultisigHandler {
     });
   }
 
-  async getNormalAccountBalance(account: string): Promise<BigNumber> {
+  async getStateGetActor(address: string): Promise<BigNumber> {
     return new Promise(resolve => {
       this.requester
         .post('', {
           jsonrpc: '2.0',
-          method: 'Filecoin.WalletBalance',
+          method: 'Filecoin.StateGetActor',
           id: 1,
-          params: [account],
+          params: [address, null],
         })
         .then((response: any) => {
-          const balance = new BigNumber(response.data.result);
-          resolve(balance);
-        })
-        .catch(function (error: any) {
-          console.log(error.toJSON());
+          resolve(response.data.result);
         });
     });
   }
