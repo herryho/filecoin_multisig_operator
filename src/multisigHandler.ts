@@ -1169,8 +1169,18 @@ export default class FilecoinMultisigHandler {
         } else {
           actCid = STORAGE_MINER_ACTOR_CODE_CID;
         }
+
+        let actCidFormatted = {
+          '/': actCid,
+        };
         // 先将要列换的owner id编好码
-        let encodedParam = await this.encodeParams(actCid, 23, newOwnerId);
+        let encodedParam = await this.encodeParams(
+          actCidFormatted,
+          23,
+          newOwnerId
+        );
+
+        console.log(`encodedParam: ${encodedParam}`);
 
         const selfAccount = this.envParamsProvider.getFilecoinSignerAccount();
         // 获取nounce
@@ -1221,8 +1231,15 @@ export default class FilecoinMultisigHandler {
           actCid = STORAGE_MINER_ACTOR_CODE_CID;
         }
 
+        let actCidFormatted = {
+          '/': actCid,
+        };
         // 先将要列换的owner id编好码
-        let encodedParam = await this.encodeParams(actCid, 23, newOwnerId);
+        let encodedParam = await this.encodeParams(
+          actCidFormatted,
+          23,
+          newOwnerId
+        );
 
         let propose_params = {
           To: minerId,
@@ -1285,8 +1302,15 @@ export default class FilecoinMultisigHandler {
           actCid = STORAGE_MINER_ACTOR_CODE_CID;
         }
 
+        let actCidFormatted = {
+          '/': actCid,
+        };
         // 先将要列换的owner id编好码
-        let encodedParam = await this.encodeParams(actCid, 23, newOwnerId);
+        let encodedParam = await this.encodeParams(
+          actCidFormatted,
+          23,
+          newOwnerId
+        );
 
         const selfAccount = this.envParamsProvider.getFilecoinSignerAccount();
 
