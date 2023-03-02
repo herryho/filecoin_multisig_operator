@@ -1446,6 +1446,15 @@ export default class FilecoinMultisigHandler {
     });
   }
 
+  /**
+   * {
+   * "Code": {"/":"bafk2bzacedu4chbl36rilas45py4vhqtuj6o7aa5stlvnwef3kshgwcsmha6y"},
+   * "Head":{"/":"bafy2bzacecraokgi3i3pcvegpbrrypoxhat2qqmbmjpjen4bxnsifpbknbbjw"},
+   * "Nonce":0,
+   * "Balance":"4212560863001507223023",
+   * "Address":null}
+   * */
+  // StateGetActor = PreCommit + Pledge + Vesting + Available
   async getStateGetActor(address: string): Promise<BigNumber> {
     return new Promise(resolve => {
       this.requester
