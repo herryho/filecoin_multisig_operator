@@ -15,4 +15,6 @@ let f2Address = 't03943';
 let f2EthAddress = ethAddressFromID(f2Address);
 console.log(`Multisig f410Address: ${f2EthAddress}`);
 
-// ethAddressFromDelegated(delegated: string)
+let delegatedAddress = 't410fy4z53d54xgleqfyccbx7a4njngmb7ig67k3elua';
+let ethAddress = ethAddressFromDelegated(delegatedAddress);
+console.log(`f4 Address to eth address: ${ethAddress}`);
