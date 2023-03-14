@@ -111,7 +111,7 @@ export default class FilecoinMultisigHandler {
       let propose_multisig_transaction = {
         to: this.envParamsProvider.getFilecoinMultisigAddress(),
         from: selfAccount,
-        nonce: nonce,
+        nonce: Number(nonce),
         value: '0',
         gaslimit: 0,
         gasfeecap: '0',
@@ -176,7 +176,7 @@ export default class FilecoinMultisigHandler {
       let approve_multisig_transaction = {
         to: this.envParamsProvider.getFilecoinMultisigAddress(),
         from: selfAccount,
-        nonce: nonce,
+        nonce: Number(nonce),
         value: '0',
         gaslimit: 0,
         gasfeecap: '0',
@@ -244,7 +244,7 @@ export default class FilecoinMultisigHandler {
           jsonrpc: '2.0',
           method: 'Filecoin.MpoolPush',
           id: 1,
-          params: [JSON.parse(signed_message)],
+          params: [signed_message],
         })
         .then((response: any) => {
           resolve(response.data.result);

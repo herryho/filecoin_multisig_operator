@@ -8,12 +8,9 @@
   "dependencies": {
     "@blitslabs/filecoin-js-signer": "^1.0.6",
     "@glif/filecoin-address": "^2.0.37",
-    "@zondax/filecoin-signing-tools": "^2.3.0",
-    "base32-decode": "^1.0.0",
+    "@zondax/filecoin-signing-tools": "^2.4.1",
     "bignumber.js": "^8.1.1",
     "dotenv": "^6.1.0",
-    "ipld-dag-cbor": "^1.0.1",
-    "leb128": "^0.0.5",
     "ts-node": "^10.9.1",
     "winston": "^3.8.2"
   },
@@ -24,10 +21,10 @@
     "clean": "gts clean",
     "compile": "tsc",
     "fix": "gts fix",
-    "create-multi-account": "node ./build/src/index.js create ",
-    "init-multi-transfer": "node ./build/src/index.js init ",
-    "approve-multi-transfer": "node ./build/src/index.js approve ",
-    "cancel-multi-transfer": "node ./build/src/index.js cancel ",
-    "simple-transfer": "node ./build/src/index.js transfer "
+    "create-multi-account": "ts-node ./build/src/index.js create ",
+    "init-multi-transfer": "ts-node ./build/src/index.js init ",
+    "approve-multi-transfer": "ts-node ./build/src/index.js approve ",
+    "cancel-multi-transfer": "ts-node ./build/src/index.js cancel ",
+    "simple-transfer": "ts-node ./build/src/index.js transfer "
   }
 }
