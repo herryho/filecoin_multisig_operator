@@ -9,15 +9,15 @@ export const TRANSFER = 'transfer';
 
 // form mainnet
 export const MULTISIG_ACTOR_CODE_CID =
-  'bafk2bzacebhldfjuy4o5v7amrhp5p2gzv2qo5275jut4adnbyp56fxkwy5fag';
+  'bafk2bzacec4va3nmugyqjqrs3lqyr2ij67jhjia5frvx7omnh2isha6abxzya';
 
 // for calibration
 export const CALIBRATION_MULTISIG_ACTOR_CODE_CID =
-  'bafk2bzacec6gmi7ucukr3bk67akaxwngohw3lsg3obvdazhmfhdzflkszk3tg';
+  'bafk2bzacebv5gdlte2pyovmz6s37me6x2rixaa6a33w6lgqdohmycl23snvwm';
 
 // for calibration
 export const CALIBRATION_STORAGE_MINER_ACTOR_CODE_CID =
-  'bafk2bzacebz4na3nq4gmumghegtkaofrv4nffiihd7sxntrryfneusqkuqodm';
+  'bafk2bzacedu4chbl36rilas45py4vhqtuj6o7aa5stlvnwef3kshgwcsmha6y';
 
 // for mainnet
 export const STORAGE_MINER_ACTOR_CODE_CID =
