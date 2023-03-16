@@ -10,9 +10,10 @@ import {
   BuiltInMethod,
 } from './types';
 import BigNumber from 'bignumber.js';
-import {copyFileSync} from 'fs';
 import {sleep} from './utils';
+import {Address, Network} from '@zondax/izari-tools';
 const filecoin_signer = require('@zondax/filecoin-signing-tools');
+const Web3 = require('web3');
 
 export default class FilecoinMultisigHandler {
   constructor(
@@ -1468,5 +1469,37 @@ export default class FilecoinMultisigHandler {
           resolve(response.data.result);
         });
     });
+  }
+
+  // 判断filForward交易最终目的地是否为多签地址
+  judgeIfDestMsig(param: string): boolean {
+    let ifDestMsig = false;
+
+    // 获取网络类型
+    const network = this.envParamsProvider.getFilecoinNetwork();
+    let networkType = Network.Testnet;
+    if (network == 'mainnet') {
+      networkType = Network.Mainnet;
+    }
+
+    let destBytes = `0x${Buffer.from(param, 'base64')
+      .slice(6)
+      .toString('hex')}`;
+
+    const web3 = new Web3(Web3.givenProvider);
+    const decodedbytes = web3.eth.abi.decodeParameter('bytes', destBytes);
+
+    // decodedAddress要去掉前面的0x
+    const decodedAddress = Address.fromBytes(
+      networkType,
+      Buffer.from(decodedbytes.slice(2), 'hex')
+    ).toString();
+
+    const msigId = this.envParamsProvider.getFilecoinMultisigAddressId();
+    if (decodedAddress == msigId) {
+      ifDestMsig = true;
+    }
+
+    return ifDestMsig;
   }
 }
