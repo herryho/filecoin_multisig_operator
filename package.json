@@ -10,7 +10,6 @@
     "@glif/filecoin-address": "^2.0.37",
     "@polkadot/util": "^11.0.2",
     "@zondax/filecoin-signing-tools": "^2.4.1",
-    "@zondax/izari-tools": "^0.4.0",
     "bignumber.js": "^8.1.1",
     "dotenv": "^6.1.0",
     "ts-node": "^10.9.1",
