@@ -9,7 +9,7 @@ export const TRANSFER = 'transfer';
 
 // form mainnet
 export const MULTISIG_ACTOR_CODE_CID =
-  'bafk2bzacec4va3nmugyqjqrs3lqyr2ij67jhjia5frvx7omnh2isha6abxzya';
+  'bafk2bzaceduf3hayh63jnl4z2knxv7cnrdenoubni22fxersc4octlwpxpmy4';
 
 // for calibration
 export const CALIBRATION_MULTISIG_ACTOR_CODE_CID =
@@ -21,7 +21,7 @@ export const CALIBRATION_STORAGE_MINER_ACTOR_CODE_CID =
 
 // for mainnet
 export const STORAGE_MINER_ACTOR_CODE_CID =
-  'bafk2bzacedyux5hlrildwutvvjdcsvjtwsoc5xnqdjl73ouiukgklekeuyfl4';
+  'bafk2bzaced4h7noksockro7glnssz2jnmo2rpzd7dvnmfs4p24zx3h6gtx47s';
 
 /// interfaces
 export interface message {
