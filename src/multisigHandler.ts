@@ -1420,8 +1420,7 @@ export default class FilecoinMultisigHandler {
   // minerId要填节点的id, 如t03837
   async approveMultisigChangeOwner2(
     minerId: string,
-    // propose主账号发起这笔交易的cid
-    txCid: string,
+    txnid: number,
     encodedParam: string
   ) {
     return new Promise(async resolve => {
@@ -1439,11 +1438,6 @@ export default class FilecoinMultisigHandler {
 
         const proposalHash =
           filecoin_signer.computeProposalHash(proposal_params);
-        const receiptMessage = await this.waitTransactionReceipt(txCid);
-        const recpt = JSON.parse(JSON.stringify(receiptMessage));
-
-        const txnid = recpt['ReturnDec']['TxnID'];
-        console.log(`txnid: ${txnid}`);
 
         let approve_params = {
           ID: txnid,

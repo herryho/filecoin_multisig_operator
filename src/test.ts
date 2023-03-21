@@ -30,24 +30,24 @@ async function main() {
     requester
   );
 
-  let minerId = 't03943';
+  let minerId = 'f02064263';
   let encodeParams = 'RACH/30=';
-  let txCid = '';
+  let txnid = 1;
 
   // 主节点发起变更owner请求
-  let rs = await multisigHandler.initNewMultisigChangeOwner2(
-    minerId,
-    encodeParams
-  );
-
-  // // 副节点同意变更owner请求
-  // let rs = await multisigHandler.approveMultisigChangeOwner2(
+  // let rs = await multisigHandler.initNewMultisigChangeOwner2(
   //   minerId,
-  //   txCid,
   //   encodeParams
   // );
 
-  console.log(`result is: ${JSON.stringify(rs)}`);
+  // 副节点同意变更owner请求
+  let rs = await multisigHandler.approveMultisigChangeOwner2(
+    minerId,
+    txnid,
+    encodeParams
+  );
+
+  console.log(`result is: ${rs}`);
 }
 
 main()
