@@ -1290,7 +1290,7 @@ export default class FilecoinMultisigHandler {
           To: minerId,
           Value: '0',
           Method: 23,
-          Params: this.serializeAndFormatParams(encodedParam),
+          Params: encodedParam,
         };
 
         const selfAccount = this.envParamsProvider.getFilecoinSignerAccount();
