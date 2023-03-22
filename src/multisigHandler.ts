@@ -256,7 +256,6 @@ export default class FilecoinMultisigHandler {
   serializeAndFormatParams(params: any) {
     console.log(`params: ${JSON.stringify(params)}`);
     const serializedParams = filecoin_signer.serializeParams(params);
-    console.log(`kkkserializedParams: ${serializedParams}`);
     const formatedRawData = this.hexToBase64(serializedParams);
 
     return formatedRawData;
@@ -333,12 +332,13 @@ export default class FilecoinMultisigHandler {
       this.requester
         .post('', {
           jsonrpc: '2.0',
-          method: 'Filecoin.StateWaitMsg',
+          method: 'Filecoin.StateWaitMsgLimited',
           id: 1,
           // 【cid, confidence】
-          params: [formatted_cid, null, 5000, true],
+          params: [formatted_cid, null, 5000],
         })
         .then((response: any) => {
+          console.log(`response.data: ${JSON.stringify(response.data)}`);
           resolve(response.data.result);
         });
     });
