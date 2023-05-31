@@ -1,5 +1,5 @@
 import EnvParamsProvider from './envParamsProvider';
-import {Logger} from 'winston';
+import { Logger } from 'winston';
 import {
   message,
   MsigMethod,
@@ -10,7 +10,7 @@ import {
   BuiltInMethod,
 } from './types';
 import BigNumber from 'bignumber.js';
-import {sleep} from './utils';
+import { sleep } from './utils';
 const filecoin_signer = require('@zondax/filecoin-signing-tools');
 const Web3 = require('web3');
 
@@ -227,7 +227,7 @@ export default class FilecoinMultisigHandler {
           jsonrpc: '2.0',
           method: 'Filecoin.GasEstimateMessageGas',
           id: 1,
-          params: [message, {MaxFee: '0'}, null],
+          params: [message, { MaxFee: '0' }, null],
         })
         .then((response: any) => {
           console.log(`gas result: ${JSON.stringify(response.data)}`);
@@ -483,7 +483,7 @@ export default class FilecoinMultisigHandler {
   async getMessageInfoByCid(messageCid: string) {
     return new Promise(resolve => {
       try {
-        const cid = {'/': messageCid};
+        const cid = { '/': messageCid };
 
         this.requester
           .post('', {
@@ -1573,6 +1573,25 @@ export default class FilecoinMultisigHandler {
         })
         .then((response: any) => {
           resolve(response.data.result);
+        });
+    });
+  }
+
+  // 获取某个f地址的f0 address Id
+  async getAccountAddressId(address: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      this.requester
+        .post("", {
+          jsonrpc: "2.0",
+          method: "Filecoin.StateLookupID",
+          id: 1,
+          params: [address, null],
+        })
+        .then((response: any) => {
+          resolve(response.data.result);
+        })
+        .catch(function (error: any) {
+          console.log(error.toJSON());
         });
     });
   }
