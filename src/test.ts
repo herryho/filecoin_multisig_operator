@@ -32,7 +32,7 @@ async function main() {
 
   let minerId = 'f02064263';
   let encodeParams = 'RACH/30=';
-  let txnid = 1;
+  let txnid = '2019';
 
   // 主节点发起变更owner请求
   // let rs = await multisigHandler.initNewMultisigChangeOwner2(
@@ -40,15 +40,28 @@ async function main() {
   //   encodeParams
   // );
 
-  // 副节点同意变更owner请求
-  let rs = await multisigHandler.approveMultisigChangeOwner2(
-    minerId,
-    txnid,
-    encodeParams
+  // 
+  let rs = await multisigHandler.approveMultisigTransfer(
+    'f02097134',
+    '1000000000000000000000',
+    '2019',
+    
   );
+
+
+  // let minerId= 'f02182258'
+  // let encodedParam = 'glgxA6iB70GipHYFgVEQeldoHr/p5Yg1gLQDwlqjKeVoRm45IZSSAZLdNen6iwljqNT02YFYMQOLXt3QCH6aMUjevr+TXUBzrw7lduDNzMDW6vBQG2BEbmzbrzCo8qKEG2u/IftwfEs='
+
+  //   let rs = await multisigHandler.approveMultisigChangeWorker(
+  //   minerId,
+  //   1951,
+  //   encodedParam,
+    
+  // );
 
   console.log(`result is: ${rs}`);
 }
+
 
 main()
   .then()

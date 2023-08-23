@@ -152,19 +152,19 @@ export default class FilecoinMultisigHandler {
         Requester: this.envParamsProvider.getFilecoinMainNodeAddress(),
         To: to,
         Value: amount,
-        Method: 0,
+        Method: '3844450837',
         Params: '',
       };
 
       const proposalHash = filecoin_signer.computeProposalHash(proposal_params);
-      const receiptMessage = await this.waitTransactionReceipt(txCid);
-      const recpt = JSON.parse(JSON.stringify(receiptMessage));
+      // const receiptMessage = await this.waitTransactionReceipt(txCid);
+      // const recpt = JSON.parse(JSON.stringify(receiptMessage));
 
-      const txnid = recpt['ReturnDec']['TxnID'];
-      console.log(`txnid: ${txnid}`);
+      // const txnid = recpt['ReturnDec']['TxnID'];
+      // console.log(`txnid: ${txnid}`);
 
       let approve_params = {
-        ID: txnid,
+        ID: txCid,
         ProposalHash: proposalHash.toString('base64'),
       };
 
